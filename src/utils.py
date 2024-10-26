@@ -5,7 +5,7 @@ import multiprocess
 import epitran
 from functools import lru_cache
 from datasets import DatasetDict, load_dataset, concatenate_datasets, load_from_disk
-from config import (
+from src.config import (
     DATASETS_DIR,
     GLUE_DIR,
     ORIGINAL_DIR,
@@ -157,8 +157,17 @@ def download_bookcorpus():
         split="train",
         num_proc=num_processes,
     )
-   
-    bookcorpus = bookcorpus.train_test_split(test_size=0.02)
+    wiki = load_dataset(
+        "wikipedia",
+        "20220301.en",
+        split="train",
+        trust_remote_code=True,
+        num_proc=num_processes,
+    )
+    wiki = wiki.remove_columns([col for col in wiki.column_names if col != "text"])
+    assert bookcorpus.features.type == wiki.features.type
+    bookcorpus = concatenate_datasets([bookcorpus, wiki])
+    bookcorpus = bookcorpus.train_test_split(test_size=0.002)
     bookcorpus = DatasetDict(
         {
             "train": bookcorpus["train"], 

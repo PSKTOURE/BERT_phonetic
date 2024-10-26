@@ -4,7 +4,7 @@ import hashlib
 import time
 import argparse
 from datasets import load_from_disk
-from utils import num_processes
+from src.utils import num_processes
 from langdetect import detect, LangDetectException
 from lingua import Language, LanguageDetectorBuilder
 

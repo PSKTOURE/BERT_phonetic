@@ -10,7 +10,7 @@ from tokenizers.trainers import WordLevelTrainer, WordPieceTrainer, BpeTrainer
 from tokenizers import normalizers
 from tokenizers.normalizers import NFD, Lowercase, StripAccents
 from transformers import PreTrainedTokenizerFast
-from config import DATASETS_DIR, TOKENIZERS_DIR, BERT_DEFAULT_VOCAB_SIZE
+from src.config import DATASETS_DIR, TOKENIZERS_DIR, BERT_DEFAULT_VOCAB_SIZE
 
 def get_training_corpus(dataset):
     dataset = dataset["train"]
@@ -90,12 +90,3 @@ def load_tokenizer(tokenizer_type: str, is_phonetic: bool) -> PreTrainedTokenize
         f"{TOKENIZERS_DIR}/tokenizer_{prefix}{tokenizer_type}"
     )
     return tokenizer
-
-if __name__ == "__main__":
-    args = argparse.ArgumentParser()
-    args.add_argument("--dataset_path", type=str, default=f"{DATASETS_DIR}/wikitext-103-raw-v1")
-    args.add_argument("--tokenizer_type", type=str, default="WordPiece")
-    args.add_argument("--is_phonetic", action="store_true")
-    args = args.parse_args()
-
-    train_tokenizer(args.dataset_path, args.tokenizer_type, is_phonetic=args.is_phonetic)

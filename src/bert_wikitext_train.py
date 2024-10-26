@@ -10,19 +10,19 @@ from transformers import (
 
 from transformers import BertConfig, BertForMaskedLM
 from transformers import DataCollatorForLanguageModeling
-from config import MAX_LENGTH, MODEL_DIR, LOG_DIR, BATCH_SIZE
-from utils import num_processes, timeit
-from train_tokenizer import load_tokenizer
+from src.config import MAX_LENGTH, MODEL_DIR, LOG_DIR, BATCH_SIZE
+from src.utils import num_processes, timeit
+from src.train_tokenizer import load_tokenizer
 
 ########### BERT TRAINING START HERE ############
 # First tokenized wikitest dataset
-def preprocess_dataset(dataset, tokenizer) -> dict:
+def preprocess_dataset(dataset, tokenizer, max_length=MAX_LENGTH) -> dict:
     def tokenize_function(examples):
         return tokenizer(
             examples["text"],
             truncation=True,
             padding=False,
-            max_length=MAX_LENGTH,
+            max_length=max_length,
         )
 
     tokenized_dataset = dataset.map(
@@ -62,6 +62,7 @@ def train(
     num_epochs: int = 40,
     batch_size: int = BATCH_SIZE,
     lr: float = 1e-4,
+    max_length: int = MAX_LENGTH,
     fp16: bool = False,
     is_phonetic: bool = False,
     log_dir: str = LOG_DIR,
@@ -80,7 +81,7 @@ def train(
         dataset = load_from_disk(dataset_path)
     except:
         raise ValueError(f"Dataset {dataset_path} not found")
-    dataset_tokenized = preprocess_dataset(dataset, tokenizer)
+    dataset_tokenized = preprocess_dataset(dataset, tokenizer, max_length=max_length)
 
     config = setup_bert_config(vocab_size=vocab_size)
     model = BertForMaskedLM(config)
@@ -110,6 +111,8 @@ def train(
         save_total_limit=1,
         load_best_model_at_end=True,
         resume_from_checkpoint=True,
+        dataloader_num_workers=num_processes,
+        dataloader_persistent_workers=True,
         logging_dir=f"{log_dir}/tensorboard_{model_name}",
         logging_steps=100,
         report_to="tensorboard",
@@ -118,8 +121,8 @@ def train(
         eval_strategy="steps",
         eval_steps=2_000,
         gradient_accumulation_steps=4,
-        hub_model_id=f"{model_name}",
-        push_to_hub=True,
+        # hub_model_id=f"{model_name}",
+        # push_to_hub=True,
         # gradient_checkpointing=True,
     )
 
@@ -137,48 +140,7 @@ def train(
         trainer.train(resume_from_checkpoint=True)
     else:
         trainer.train()
-    trainer.push_to_hub("End of training")
-    tokenizer.push_to_hub(model_name)
+    # trainer.push_to_hub("End of training")
+    # tokenizer.push_to_hub(model_name)
     return trainer
 
-
-if __name__ == "__main__":
-
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument(
-        "--dataset_path", type=str, required=True, help="Path to the dataset"
-    )
-    argparser.add_argument(
-        "--tokenizer_type",
-        type=str,
-        default="WordPiece",
-        help="WordPiece, BPE or WordLevel",
-    )
-    argparser.add_argument("--fp16", action="store_true", help="Enable FP16 training")
-    argparser.add_argument(
-        "--is_phonetic",
-        action="store_true",
-        help="Use dataset transcribed to phonetic alphabet",
-    )
-    argparser.add_argument("--num_epochs", type=int, default=20)
-    argparser.add_argument("--log_dir", type=str, default=LOG_DIR)
-    argparser.add_argument("--batch_size", type=int, default=BATCH_SIZE)
-    argparser.add_argument(
-        "--model_dir", type=str, default=MODEL_DIR, help="Directory to save the model"
-    )
-    argparser.add_argument("--lr", type=float, default=1e-4)
-    argparser.add_argument("--custom_message", type=str, default="Training operation")
-
-    args = argparser.parse_args()
-
-    timeit(train)(
-        dataset_path=args.dataset_path,
-        tokenizer_type=args.tokenizer_type,
-        num_epochs=args.num_epochs,
-        fp16=args.fp16,
-        is_phonetic=args.is_phonetic,
-        log_dir=args.log_dir,
-        batch_size=args.batch_size,
-        model_dir=args.model_dir,
-        lr=args.lr,
-    )

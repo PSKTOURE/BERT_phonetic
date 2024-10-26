@@ -2,7 +2,6 @@
 import os
 import re
 import time
-import torch
 import numpy as np
 import argparse
 import evaluate
@@ -17,8 +16,8 @@ from transformers import (
     DataCollatorWithPadding,
 )
 from transformers import DataCollatorWithPadding
-from config import MAX_LENGTH, LOG_DIR, DEFAULT_MODEL
-from utils import (
+from src.config import MAX_LENGTH, LOG_DIR, DEFAULT_MODEL
+from src.utils import (
     task_to_fields,
     task_to_num_labels,
     task_to_metric,
@@ -131,7 +130,7 @@ def setup_trainer(model, dataset, tokenizer, data_collator, model_name, task_nam
         logging_steps=100,
         report_to="tensorboard",
         fp16=True,
-        seed=np.random.randint(low=0, high=1000),
+        seed=np.random.randint(1e6),
         gradient_accumulation_steps=4,
         gradient_checkpointing=True,
     )
@@ -211,12 +210,16 @@ def _fine_tune_on_all_tasks(
     task_to_num_labels: dict,
     is_phonetic: bool = False,
     all=False,
+    tokenizer_path: str = None,
 ):
     results = defaultdict(dict)
     task_name = list(task_to_fields.keys())[0]
     num_labels = task_to_num_labels[task_name]
-
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    
+    if tokenizer_path:
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(model_path)
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
 
     model_name = get_model_name(model_path)
@@ -258,11 +261,12 @@ def fine_tune_on_all_tasks(
     task_to_num_labels: dict,
     is_phonetic: bool = False,
     all=False,
+    tokenizer_path: str = None,
 ):
     start = time.time()
     results = defaultdict(lambda: defaultdict(list))
     futures = [
-        _fine_tune_on_all_tasks(model_path, task_to_num_labels, is_phonetic, all)
+        _fine_tune_on_all_tasks(model_path, task_to_num_labels, is_phonetic, all, tokenizer_path)
         for _ in range(n)
     ]
 
@@ -296,21 +300,3 @@ def fine_tune_on_all_tasks(
         f"Total seconds: {time_taken:.2f}\n"
     )
     print(log_message)
-
-
-if __name__ == "__main__":
-
-    args = argparse.ArgumentParser()
-    args.add_argument("--model_path", type=str, default=DEFAULT_MODEL)
-    args.add_argument("--is_phonetic", action="store_true")
-    args.add_argument("--all", action="store_true")
-    args.add_argument("--n", type=int, default=1)
-    args = args.parse_args()
-
-    fine_tune_on_all_tasks(
-        args.n,
-        args.model_path,
-        task_to_num_labels,
-        is_phonetic=args.is_phonetic,
-        all=args.all,
-    )

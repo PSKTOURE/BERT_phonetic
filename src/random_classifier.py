@@ -2,7 +2,7 @@ import torch
 from collections import defaultdict
 import evaluate
 import numpy as np
-from utils import load_glue_dataset_from_dir, task_to_metric
+from src.utils import load_glue_dataset_from_dir, task_to_metric
 from concurrent.futures import ProcessPoolExecutor
 import time
 

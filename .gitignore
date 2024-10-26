@@ -1,6 +1,7 @@
 # Created by https://www.toptal.com/developers/gitignore/api/java,react,node,c++,eclipse,netbeans,intellij
 # Edit at https://www.toptal.com/developers/gitignore?templates=java,react,node,c++,eclipse,netbeans,intellij
 venv
+DATASETS
 FOUILLE/tp3
 wiki
 glue_data

@@ -4,7 +4,7 @@ import os
 MAX_LENGTH = 128
 BATCH_SIZE = 320
 HOME = os.environ["HOME"]
-DATASETS_DIR = f"{HOME}/DATASETS/"
+DATASETS_DIR = "DATASETS"
 MODEL_DIR = "models"
 LOG_DIR = "logs"
 ORIGINAL_DIR = "original"

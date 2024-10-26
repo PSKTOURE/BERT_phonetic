@@ -1,0 +1,24 @@
+# Training model args:
+--dataset_path DATASETS/phonetic_cleaned_bookcorpus
+--tokenizer_type BPE
+--is_phonetic TRUE
+--num_epochs 40
+--fp16 TRUE
+--batch_size 256
+--lr 0.0001
+--max_length 128
+--log_dir logs
+--model_dir models
+--custom_message "Training BERT phonetic on bookcorpus"
+
+# Fine_tuning args:
+--model_path psktoure/BERT_BPE_phonetic_cleaned_wikitext-103-raw-v1
+--is_phonetic TRUE
+--n 5
+--all TRUE
+--tokenizer_path None
+
+# Training tokenizer args:
+--dataset_path DATASETS/phonetic_cleaned_bookcorpus
+--tokenizer_type BPE
+--is_phonetic TRUE

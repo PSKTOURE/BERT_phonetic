@@ -4,11 +4,11 @@ from transformers import (
     AutoTokenizer,
     DataCollatorWithPadding,
 )
-from train_on_all_task import (
+from src.train_on_all_task import (
     preprocess_dataset,
     compute_metrics,
 )
-from utils import task_to_num_labels, task_to_metric, load_glue_dataset_from_dir
+from src.utils import task_to_num_labels, task_to_metric, load_glue_dataset_from_dir
 import numpy as np
 import optuna
 import os
