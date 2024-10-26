@@ -7,12 +7,12 @@
 `bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3`\
 `source ~/miniconda3/bin/activate`\
 `conda init --all`\
-`rm ~/miniconda3/miniconda.sh`\
+`rm ~/miniconda3/miniconda.sh`
 
 2. Create virtual env: 
 `conda create --name bert python=3.10`\
-`conda activate bert`\
-3. Install requirements: `pip install -r requirements.txt`\
+`conda activate bert`
+3. Install requirements: `pip install -r requirements.txt`
 4. Change hyperparameters in config.txt (optional)
 5. The tokenizers has to be one of the listed in the tokenizers dir or from huggingface.
 6. run main.py 
