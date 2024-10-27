@@ -21,9 +21,11 @@ Grab your access token from your huggingface account and add\
 `source .bashrc`or .zshrc. If set will upload model to you hub account else will save
 it in the model directory.
 7. run main.py 
-It will download the datasets and make the translation to phonetic if the datasets is not found, eats up a lot of space in disk 150Go+, 
+It will download the datasets and make the translation to phonetic if the datasets is not found, eats up a lot of space in disk 300Go+, 
 and will also train using the default config found in config.txt.\
 For training model: `python3 main.py --train`\
 For training tokenizer(optional): `python3 main.py --train_tokenizer`\
 For fine-tuning on all glue task: `python3 main.py --fine_tune`\
 Change args in config.txt if needed.
+8. Trained model will be in the models directory
+9. Clean your .cache directory after training to regain around 250Go of space.

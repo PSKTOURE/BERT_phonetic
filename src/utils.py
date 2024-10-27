@@ -195,6 +195,7 @@ def download_bookcorpus(is_phonetic=False):
         .map(clean_text, batched=True, num_proc=num_processes)
         .map(remove_exact_duplicates, batched=True, num_proc=num_processes)
         .map(filter_by_language, batched=True, num_proc=num_processes)
+        .shuffle(seed=42)
     )
 
     if is_phonetic:

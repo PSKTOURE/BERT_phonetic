@@ -112,7 +112,6 @@ def train(
         load_best_model_at_end=True,
         resume_from_checkpoint=True,
         dataloader_num_workers=num_processes,
-        dataloader_persistent_workers=True,
         logging_dir=f"{log_dir}/tensorboard_{model_name}",
         logging_steps=100,
         report_to="tensorboard",
@@ -141,7 +140,7 @@ def train(
         trainer.train(resume_from_checkpoint=True)
     else:
         trainer.train()
-    # trainer.push_to_hub("End of training")
-    # tokenizer.push_to_hub(model_name)
+    trainer.push_to_hub("End of training")
+    tokenizer.push_to_hub(model_name)
     return trainer
 
