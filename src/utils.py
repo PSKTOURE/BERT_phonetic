@@ -5,6 +5,11 @@ import multiprocess
 import epitran
 from functools import lru_cache
 from datasets import DatasetDict, load_dataset, concatenate_datasets, load_from_disk
+from src.dataset_cleaning import (
+    remove_exact_duplicates,
+    filter_by_language,
+    clean_text,
+)
 from src.config import (
     DATASETS_DIR,
     GLUE_DIR,
@@ -149,7 +154,7 @@ def download_wikitext(dataset_name) -> list[str]:
     print(f"Downloaded {dataset_name} dataset in {elapsed_time:.2f} seconds")
 
 
-def download_bookcorpus():
+def download_bookcorpus(is_phonetic=False):
     start = time.time()
     bookcorpus = load_dataset(
         "bookcorpus",
@@ -169,10 +174,7 @@ def download_bookcorpus():
     bookcorpus = concatenate_datasets([bookcorpus, wiki])
     bookcorpus = bookcorpus.train_test_split(test_size=0.002)
     bookcorpus = DatasetDict(
-        {
-            "train": bookcorpus["train"], 
-            "validation": bookcorpus["test"]
-        }
+        {"train": bookcorpus["train"], "validation": bookcorpus["test"]}
     )
 
     def chunked_text(examples):
@@ -183,14 +185,22 @@ def download_bookcorpus():
             all.extend(chunks)
         return {"text": all}
 
-    bookcorpus = bookcorpus.map(
-        chunked_text,
-        batched=True,
-        num_proc=num_processes,
+    bookcorpus = (
+        bookcorpus.map(
+            chunked_text,
+            batched=True,
+            num_proc=num_processes,
+        )
+        .flatten_indices(num_proc=num_processes)
+        .map(clean_text, batched=True, num_proc=num_processes)
+        .map(remove_exact_duplicates, batched=True, num_proc=num_processes)
+        .map(filter_by_language, batched=True, num_proc=num_processes)
     )
-    bookcorpus = bookcorpus.flatten_indices()
 
-    bookcorpus_folder = f"{DATASETS_DIR}/bookcorpus/"
+    if is_phonetic:
+        bookcorpus = bookcorpus.map(translate_to_phonetic, num_proc=num_processes)
+        prefix = "phonetic_"
+    bookcorpus_folder = f"{DATASETS_DIR}/{prefix}bookcorpus/"
     bookcorpus.save_to_disk(bookcorpus_folder, num_proc=num_processes)
     print(
         f"Saved bookcorpus dataset to {bookcorpus_folder} in {time.time() - start:.2f} seconds"

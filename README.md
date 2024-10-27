@@ -15,9 +15,12 @@
 3. Install requirements: `pip install -r requirements.txt`
 4. Change hyperparameters in config.txt (optional)
 5. The tokenizers has to be one of the listed in the tokenizers dir or from huggingface.
-6. run main.py 
+6. Set HunggingFace access token (optional):\
+Grab your access token from your huggingface account and add `echo export HF_TOKEN="your_secret_token" >> .bashrc`\
+`source .bashrc`or .zshrc
+7. run main.py 
 It will download the datasets and make the translation to phonetic if the datasets is not found, eats up a lot of space in disk 150Go+, 
-and will also train using the default config found in config.txt
+and will also train using the default config found in config.txt.\
 For training model: `python3 main.py --train`\
 For training tokenizer(optional): `python3 main.py --train_tokenizer`\
 For fine-tuning on all glue task: `python3 main.py --fine_tune`\

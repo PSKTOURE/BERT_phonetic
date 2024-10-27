@@ -91,7 +91,7 @@ def train(
         mlm=True,
         mlm_probability=0.15,
     )
-
+    hub_token = os.getenv("HF_TOKEN")
     model_name = f"BERT_{tokenizer_type}_{dataset_name}"
     training_args = TrainingArguments(
         output_dir=f"{model_dir}/{model_name}",
@@ -121,8 +121,9 @@ def train(
         eval_strategy="steps",
         eval_steps=2_000,
         gradient_accumulation_steps=4,
-        # hub_model_id=f"{model_name}",
-        # push_to_hub=True,
+        hub_token=hub_token,
+        hub_model_id=f"{model_name}",
+        push_to_hub=hub_token is not None,
         # gradient_checkpointing=True,
     )
 

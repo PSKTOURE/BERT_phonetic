@@ -1,5 +1,5 @@
 # Training model args:
---dataset_path DATASETS/phonetic_cleaned_bookcorpus
+--dataset_path DATASETS/phonetic_bookcorpus
 --tokenizer_type BPE
 --is_phonetic TRUE
 --num_epochs 40
@@ -19,6 +19,6 @@
 --tokenizer_path None
 
 # Training tokenizer args:
---dataset_path DATASETS/phonetic_cleaned_bookcorpus
+--dataset_path DATASETS/phonetic_bookcorpus
 --tokenizer_type BPE
 --is_phonetic TRUE

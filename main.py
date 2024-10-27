@@ -65,13 +65,9 @@ config_args["--tokenizer_path"] = (
 # Execute the appropriate command
 if args.train:
     start = time.time()
-    if "phonetic_cleaned_bookcorpus" not in os.listdir(DATASETS_DIR):
-        download_bookcorpus()
-        clean(f"{DATASETS_DIR}/bookcorpus")
-        convert_to_phonetic(f"{DATASETS_DIR}/cleaned_bookcorpus")
-        shutil.rmtree(f"{DATASETS_DIR}/bookcorpus")
-        shutil.rmtree(f"{DATASETS_DIR}/cleaned_bookcorpus")
-    print(f"Finished preprocessing in {time.time() - start:.2f} seconds")
+    if "phonetic_bookcorpus" not in os.listdir(DATASETS_DIR):
+        print("Downloading bookcorpus dataset and converting to phonetic ...")
+        download_bookcorpus(is_phonetic=True)
 
     # Train the model using config arguments
     train(

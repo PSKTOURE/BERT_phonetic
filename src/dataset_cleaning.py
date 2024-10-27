@@ -2,13 +2,12 @@ import re
 import os
 import hashlib
 import time
+import multiprocessing
 import argparse
 from datasets import load_from_disk
-from src.utils import num_processes
-from langdetect import detect, LangDetectException
 from lingua import Language, LanguageDetectorBuilder
 
-
+num_processes = multiprocessing.cpu_count()
 # Exact duplication removal (on individual sentences/paragraphs)
 def remove_exact_duplicates(examples):
     seen = set()
@@ -20,21 +19,6 @@ def remove_exact_duplicates(examples):
             deduped_examples.append(sentence)
     return {"text": deduped_examples}
 
-
-# Language filtering
-# def filter_by_language(examples, lang="en"):
-#     return {
-#         "text": [
-#             sentence for sentence in examples["text"] if detect_language(sentence) == lang
-#         ]
-#     }
-
-
-# def detect_language(text):
-#     try:
-#         return detect(text)
-#     except LangDetectException:
-#         return "unknown"
 
 def filter_by_language(examples):
     detector = LanguageDetectorBuilder.from_languages(Language.ENGLISH, Language.FRENCH).build()
@@ -81,11 +65,4 @@ if __name__ == "__main__":
     args.add_argument("--dataset_path", type=str, required=True)
     args = args.parse_args()
     clean(args.dataset_path)
-    # dataset_path = f"/home/toure215/DATASETS/cleaned_wikitext-103-raw-v1"
-    # original_dataset_path = f"/home/toure215/DATASETS/wikitext-103-raw-v1"
-    # original_dataset = load_from_disk(original_dataset_path)
-    # dataset = load_from_disk(dataset_path)
-    # print(dataset)
-    # print(original_dataset["validation"]["text"][:10])
-    # print(dataset["validation"]["text"][:10])  
 
