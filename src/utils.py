@@ -200,7 +200,7 @@ def download_bookcorpus(is_phonetic=False):
         bookcorpus.save_to_disk(f"{DATASETS_DIR}/bookcorpus", num_proc=num_processes)
 
     if is_phonetic:
-        bookcorpus = bookcorpus.map(translate_to_phonetic, num_proc=num_processes)
+        bookcorpus = bookcorpus.map(translate_to_phonetic, batch_size=True, num_proc=num_processes)
         prefix = "phonetic_"
     bookcorpus_folder = f"{DATASETS_DIR}/{prefix}bookcorpus/"
     bookcorpus.save_to_disk(bookcorpus_folder, num_proc=num_processes)
@@ -212,7 +212,7 @@ def download_bookcorpus(is_phonetic=False):
 def convert_to_phonetic(dataset_path):
     start = time.time()
     dataset = load_from_disk(dataset_path)
-    dataset = dataset.map(translate_to_phonetic, num_proc=num_processes)
+    dataset = dataset.map(translate_to_phonetic, num_proc=num_processes, batched=True)
     data_dir = os.path.dirname(dataset_path)
     phonetic_dataset_path = f"{data_dir}/phonetic_{os.path.basename(dataset_path)}"
     dataset.save_to_disk(phonetic_dataset_path, num_proc=num_processes)
@@ -225,14 +225,16 @@ def cached_xsampa(word):
     return "".join(epi.xsampa_list(word))
 
 
-def xsampa(sentence):
-    words = re.findall(r"\w+|[^\s\w]+", sentence)
-    return " ".join(map(cached_xsampa, words))
+def xsampa(sentences):
+    return [
+        " ".join(map(cached_xsampa, re.findall(r"\w+|[^\s\w]+", sentence)))
+        for sentence in sentences
+    ]
 
 
 def translate_to_phonetic(example):
-    sentence = xsampa(example["text"])
-    return {"text": sentence}
+    sentences = xsampa(example["text"])
+    return {"text": sentences}
 
 
 def translate_task_to_phonetic(example, task_name):
