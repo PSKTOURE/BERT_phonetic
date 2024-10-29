@@ -3,7 +3,7 @@ import time
 import shutil
 import argparse
 from collections import defaultdict
-from src.config import DATASETS_DIR, DEFAULT_MODEL
+from src.config import DATASETS_DIR, TOKENIZERS_DIR, DEFAULT_MODEL
 from src.utils import convert_to_phonetic, download_bookcorpus, task_to_num_labels
 from src.bert_wikitext_train import train
 from src.dataset_cleaning import clean
@@ -25,6 +25,7 @@ args = parser.parse_args()
 default_args = {
     "--dataset_path": f"{DATASETS_DIR}/phonetic_cleaned_bookcorpus",
     "--tokenizer_type": "BPE",
+    "--tokenizer_path": f"{TOKENIZERS_DIR}/tokenizer_phonetic_BPE",
     "--is_phonetic": "TRUE",
     "--num_epochs": "40",
     "--fp16": "TRUE",
@@ -37,7 +38,6 @@ default_args = {
     "--model_path": DEFAULT_MODEL,
     "--all": "FALSE",
     "--n": "1",
-    "--tokenizer_path": None,
 }
 config_args = defaultdict(lambda: None, default_args)
 
@@ -56,11 +56,6 @@ except FileNotFoundError:
 config_args["--is_phonetic"] = config_args["--is_phonetic"].upper() == "TRUE"
 config_args["--fp16"] = config_args["--fp16"].upper() == "TRUE"
 config_args["--all"] = config_args["--all"].upper() == "TRUE"
-config_args["--tokenizer_path"] = (
-    None
-    if config_args["--tokenizer_path"].lower() == "None".lower()
-    else config_args["--tokenizer_path"]
-)
 
 # Execute the appropriate command
 if args.train:
@@ -72,13 +67,13 @@ if args.train:
     # Train the model using config arguments
     train(
         dataset_path=config_args["--dataset_path"],
+        tokenizer_path=config_args["--tokenizer_path"],
         tokenizer_type=config_args["--tokenizer_type"],
         num_epochs=int(config_args["--num_epochs"]),
         batch_size=int(config_args["--batch_size"]),
         lr=float(config_args["--lr"]),
         max_length=int(config_args["--max_length"]),
         fp16=config_args["--fp16"],
-        is_phonetic=config_args["--is_phonetic"],
         log_dir=config_args["--log_dir"],
         model_dir=config_args["--model_dir"],
     )

@@ -1,10 +1,11 @@
 # Training model args:
 --dataset_path DATASETS/phonetic_bookcorpus
+--tokenizer_path tokenizers/tokenizer_phonetic_BPE
 --tokenizer_type BPE
 --is_phonetic TRUE
 --num_epochs 40
 --fp16 TRUE
---batch_size 256
+--batch_size 330
 --lr 0.0001
 --max_length 128
 --log_dir logs
@@ -16,7 +17,6 @@
 --is_phonetic TRUE
 --n 5
 --all TRUE
---tokenizer_path None
 
 # Training tokenizer args:
 --dataset_path DATASETS/phonetic_bookcorpus

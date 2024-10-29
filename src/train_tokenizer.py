@@ -83,10 +83,8 @@ def train_tokenizer(
     return tokenizer
 
 
-def load_tokenizer(tokenizer_type: str, is_phonetic: bool) -> PreTrainedTokenizerFast:
-    prefix = "phonetic_" if is_phonetic else ""
-    print(f"Loading {prefix}{tokenizer_type} tokenizer ...")
-    tokenizer = PreTrainedTokenizerFast.from_pretrained(
-        f"{TOKENIZERS_DIR}/tokenizer_{prefix}{tokenizer_type}"
-    )
+def load_tokenizer(tokenizer_path: str) -> PreTrainedTokenizerFast:
+    tokenizer_name = os.path.basename(tokenizer_path)
+    print(f"Loading tokenizer from {tokenizer_name}")
+    tokenizer = PreTrainedTokenizerFast.from_pretrained(tokenizer_path)
     return tokenizer

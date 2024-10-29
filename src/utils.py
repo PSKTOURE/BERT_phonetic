@@ -156,47 +156,48 @@ def download_wikitext(dataset_name) -> list[str]:
 
 def download_bookcorpus(is_phonetic=False):
     start = time.time()
-    bookcorpus = load_dataset(
-        "bookcorpus",
-        trust_remote_code=True,
-        split="train",
-        num_proc=num_processes,
-    )
-    wiki = load_dataset(
-        "wikipedia",
-        "20220301.en",
-        split="train",
-        trust_remote_code=True,
-        num_proc=num_processes,
-    )
-    wiki = wiki.remove_columns([col for col in wiki.column_names if col != "text"])
-    assert bookcorpus.features.type == wiki.features.type
-    bookcorpus = concatenate_datasets([bookcorpus, wiki])
-    bookcorpus = bookcorpus.train_test_split(test_size=0.002)
-    bookcorpus = DatasetDict(
-        {"train": bookcorpus["train"], "validation": bookcorpus["test"]}
-    )
-
-    def chunked_text(examples):
-        all = []
-        for sentence in examples["text"]:
-            words = re.findall(r"\w+|[^\s\w]+", sentence)
-            chunks = [" ".join(words[i : i + 100]) for i in range(0, len(words), 100)]
-            all.extend(chunks)
-        return {"text": all}
-
-    bookcorpus = (
-        bookcorpus.map(
-            chunked_text,
-            batched=True,
+    if "bookcorpus" not in os.listdir(DATASETS_DIR):
+        bookcorpus = load_dataset(
+            "bookcorpus",
+            trust_remote_code=True,
+            split="train",
             num_proc=num_processes,
         )
-        .flatten_indices(num_proc=num_processes)
-        .map(clean_text, batched=True, num_proc=num_processes)
-        .map(remove_exact_duplicates, batched=True, num_proc=num_processes)
-        .map(filter_by_language, batched=True, num_proc=num_processes)
-        .shuffle(seed=42)
-    )
+        wiki = load_dataset(
+            "wikipedia",
+            "20220301.en",
+            split="train",
+            trust_remote_code=True,
+            num_proc=num_processes,
+        )
+        wiki = wiki.remove_columns([col for col in wiki.column_names if col != "text"])
+        assert bookcorpus.features.type == wiki.features.type
+        bookcorpus = concatenate_datasets([bookcorpus, wiki])
+        bookcorpus = bookcorpus.train_test_split(test_size=0.002)
+        bookcorpus = DatasetDict(
+            {"train": bookcorpus["train"], "validation": bookcorpus["test"]}
+        )
+
+        def chunked_text(examples):
+            all = []
+            for sentence in examples["text"]:
+                words = re.findall(r"\w+|[^\s\w]+", sentence)
+                all += [" ".join(words[i : i + 50]) for i in range(0, len(words), 50)]
+            return {"text": all}
+
+        bookcorpus = (
+            bookcorpus.map(
+                chunked_text,
+                batched=True,
+                num_proc=num_processes,
+            )
+            .flatten_indices(num_proc=num_processes)
+            .map(clean_text, batched=True, num_proc=num_processes)
+            .map(remove_exact_duplicates, batched=True, num_proc=num_processes)
+            .map(filter_by_language, batched=True, num_proc=num_processes)
+            .shuffle(seed=42)
+        )
+        bookcorpus.save_to_disk(f"{DATASETS_DIR}/bookcorpus", num_proc=num_processes)
 
     if is_phonetic:
         bookcorpus = bookcorpus.map(translate_to_phonetic, num_proc=num_processes)

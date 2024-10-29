@@ -1,31 +1,47 @@
 # BERT_phonetic
 
 ## Training
-1. Install miniconda or anaconda\
-`mkdir -p ~/miniconda3`\
-`wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh`\
-`bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3`\
-`source ~/miniconda3/bin/activate`\
-`conda init --all`\
-`rm ~/miniconda3/miniconda.sh`
+1. Install miniconda or anaconda
+```bash
+mkdir -p ~/miniconda3
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+source ~/miniconda3/bin/activate
+conda init --all
+rm ~/miniconda3/miniconda.sh
+```
 
-2. Create virtual env: 
-`conda create --name bert python=3.10`\
-`conda activate bert`
+2. Create virtual env:
+```bash
+conda create --name bert python=3.10`
+conda activate bert
+```
 3. Install requirements: `pip install -r requirements.txt`
-4. Change hyperparameters in config.txt (optional)
-5. The tokenizers has to be one of the listed in the tokenizers dir or from huggingface.
-6. Set HunggingFace access token (optional):\
+4. Install lex_lookup (necessary for epitran):\
+```bash
+git clone https://github.com/festvox/flite.git\
+cd flite
+./configure --prefix=/home/.local/bin #(if you don't have sudo right add the prefix part)\
+make
+make install
+make lex_lookup
+sudo cp lex_lookup /usr/local/bin # if sudo right else 
+cp lex_lookup /home/.local/bin
+```
+Make sure that /home/.local/bin is in your $PATH. 
+5. Change hyperparameters in config.txt (optional)
+6. The tokenizers has to be one of the listed in the tokenizers dir or from huggingface.
+7. Set HunggingFace access token (optional):\
 Grab your access token from your huggingface account and add\
 `echo export HF_TOKEN="your_secret_token" >> .bashrc`\
 `source .bashrc`or .zshrc. If set will upload model to you hub account else will save
 it in the model directory.
-7. run main.py 
+8. run main.py 
 It will download the datasets and make the translation to phonetic if the datasets is not found, eats up a lot of space in disk 300Go+, 
 and will also train using the default config found in config.txt.\
 For training model: `python3 main.py --train`\
 For training tokenizer(optional): `python3 main.py --train_tokenizer`\
 For fine-tuning on all glue task: `python3 main.py --fine_tune`\
 Change args in config.txt if needed.
-8. Trained model will be in the models directory
-9. Clean your .cache directory after training to regain around 250Go of space.
+9. Trained model will be in the models directory
+10. Clean your .cache directory after training to regain around 250Go of space.

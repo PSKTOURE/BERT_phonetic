@@ -58,21 +58,21 @@ def setup_bert_config(
 # BERT model
 def train(
     dataset_path: str,
-    tokenizer_type: str = "WordPiece",
+    tokenizer_path: str,
     num_epochs: int = 40,
     batch_size: int = BATCH_SIZE,
     lr: float = 1e-4,
     max_length: int = MAX_LENGTH,
     fp16: bool = False,
-    is_phonetic: bool = False,
+    tokenizer_type: str = "WordPiece",
     log_dir: str = LOG_DIR,
     model_dir: str = MODEL_DIR,
 ) -> Trainer:
     dataset_name = os.path.basename(dataset_path)
     print(
-        f"Training BERT with {tokenizer_type} tokenizer on dataset {dataset_name} for {num_epochs} epochs"
+        f"Training BERT on dataset with tokenizer {tokenizer_type} on {dataset_name} for {num_epochs} epochs"
     )
-    tokenizer = load_tokenizer(tokenizer_type, is_phonetic)
+    tokenizer = load_tokenizer(tokenizer_path)
     vocab_size = tokenizer.vocab_size
     print(f"Vocab size: {vocab_size}")
 

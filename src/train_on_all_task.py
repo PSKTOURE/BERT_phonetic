@@ -216,10 +216,7 @@ def _fine_tune_on_all_tasks(
     task_name = list(task_to_fields.keys())[0]
     num_labels = task_to_num_labels[task_name]
     
-    if tokenizer_path:
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(model_path)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
 
     model_name = get_model_name(model_path)
