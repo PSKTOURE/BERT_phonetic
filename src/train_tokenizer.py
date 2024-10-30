@@ -24,6 +24,7 @@ def train_tokenizer(
 ) -> PreTrainedTokenizerFast:
     try:
         dataset = load_from_disk(dataset_path)
+        print(dataset)
     except:
         raise ValueError(f"Dataset {dataset_path} not found")
     

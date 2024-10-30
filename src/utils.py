@@ -19,7 +19,7 @@ from src.config import (
 )
 
 epi = epitran.Epitran("eng-Latn")
-num_processes = multiprocess.cpu_count()
+num_processes = multiprocess.cpu_count() - 1
 
 task_to_fields = {
     "rte": ("sentence1", "sentence2"),
@@ -143,15 +143,22 @@ def download_wikitext(is_phonetic=False) -> None:
     start = time.time()
     dataset_name = "wikitext-103-raw-v1"
     print(f"Downloading wikitext dataset: {dataset_name} ...")
-    dataset = load_dataset(
-        "Salesforce/wikitext", dataset_name, num_proc=num_processes
-    )
+    if dataset_name not in os.listdir(DATASETS_DIR):
+        print("Downloading dataset...")
+        dataset = load_dataset(
+            "Salesforce/wikitext", dataset_name, num_proc=num_processes
+        )
+    else:
+        dataset = load_from_disk(f"{DATASETS_DIR}/{dataset_name}")
     if is_phonetic:
-        dataset = dataset.map(translate_to_phonetic, num_proc=num_processes, batched=True)
+        print("Translating to phonetic...")
+        dataset = dataset.map(
+            translate_to_phonetic, num_proc=num_processes, batched=True
+        ).filter(lambda x: len(x["text"]) > 0)
         dataset_name = f"phonetic_{dataset_name}"
     wiki_dir = f"{DATASETS_DIR}/{dataset_name}"
-    os.makedirs(wiki_dir, exist_ok=True)
     dataset.save_to_disk(wiki_dir, num_proc=num_processes)
+    print(dataset)
     elapsed_time = time.time() - start
     print(f"Downloaded {dataset_name} dataset in {elapsed_time:.2f} seconds")
     print(f"Saved dataset to {wiki_dir}")
@@ -173,7 +180,9 @@ def download_bookcorpus(is_phonetic=False) -> None:
             trust_remote_code=True,
             num_proc=num_processes,
         )
-        wiki = wiki.remove_columns([col for col in wiki.column_names if col != "text"])
+        wiki = wiki.remove_columns(
+            [col for col in wiki.column_names if col != "text"]
+        )
         assert bookcorpus.features.type == wiki.features.type
         bookcorpus = concatenate_datasets([bookcorpus, wiki])
         bookcorpus = bookcorpus.train_test_split(test_size=1e-2)
@@ -195,6 +204,7 @@ def download_bookcorpus(is_phonetic=False) -> None:
                 num_proc=num_processes,
             )
             .flatten_indices(num_proc=num_processes)
+            .filter(lambda x: len(x["text"]) > 0)
             .map(clean_text, batched=True, num_proc=num_processes)
             .map(remove_exact_duplicates, batched=True, num_proc=num_processes)
             .map(filter_by_language, batched=True, num_proc=num_processes)
@@ -202,7 +212,9 @@ def download_bookcorpus(is_phonetic=False) -> None:
         )
 
     if is_phonetic:
-        bookcorpus = bookcorpus.map(translate_to_phonetic, batch_size=True, num_proc=num_processes)
+        bookcorpus = bookcorpus.map(
+            translate_to_phonetic, batch_size=True, num_proc=num_processes
+        )
         prefix = "phonetic_"
     bookcorpus_folder = f"{DATASETS_DIR}/{prefix}bookcorpus/"
     bookcorpus.save_to_disk(bookcorpus_folder, num_proc=num_processes)

@@ -1,7 +1,7 @@
 # Training model args:
-tm::dataset_path==DATASETS/phonetic_bookcorpus
-tm::tokenizer_path==tokenizers/tokenizer_phonetic_BPE
-tm::tokenizer_type==BPE
+tm::dataset_path==DATASETS/phonetic_wikitext-103-raw-v1
+tm::tokenizer_path==tokenizers/tokenizer_phonetic_WordLevel
+tm::tokenizer_type==WordLevel
 tm::is_phonetic==TRUE
 tm::num_epochs==40
 tm::fp16==TRUE
@@ -19,6 +19,6 @@ ft::n==5
 ft::all==TRUE
 
 # Training tokenizer args:
-tt::dataset_path==DATASETS/phonetic_bookcorpus
-tt::tokenizer_type==BPE
+tt::dataset_path==DATASETS/phonetic_wikitext-103-raw-v1
+tt::tokenizer_type==WordLevel
 tt::is_phonetic==TRUE

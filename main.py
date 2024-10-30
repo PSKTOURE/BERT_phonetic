@@ -91,7 +91,7 @@ config_args["ft::all"] = config_args["ft::all"].upper() == "TRUE"
 if args.download_bookcorpus and not os.path.exists(f"{DATASETS_DIR}/bookcorpus"):
     download_bookcorpus(is_phonetic=args.is_phonetic)
 
-elif args.download_wikitext and not os.path.exists(f"{DATASETS_DIR}/wikitext-103-raw-v1"):
+elif args.download_wikitext:
     download_wikitext(is_phonetic=args.is_phonetic)
 
 elif args.download_glue and not os.path.exists(f"{DATASETS_DIR}/glue"):
