@@ -1,23 +1,46 @@
 import os
-import time
-import shutil
 import argparse
 from collections import defaultdict
 from src.config import DATASETS_DIR, TOKENIZERS_DIR, DEFAULT_MODEL
-from src.utils import convert_to_phonetic, download_bookcorpus, timeit, task_to_num_labels
+from src.utils import (
+    download_bookcorpus,
+    download_wikitext,
+    download_glue_dataset,
+    timeit,
+    task_to_num_labels,
+)
 from src.bert_wikitext_train import train
-from src.dataset_cleaning import clean
 from src.train_on_all_task import fine_tune_on_all_tasks
 from src.train_tokenizer import train_tokenizer
 
 # Initialize argparse for main commands
 parser = argparse.ArgumentParser()
-parser.add_argument("train", action="store_true", help="Launch training process")
 parser.add_argument(
-    "fine_tune", action="store_true", help="Launch fine-tuning process"
+    "--download_bookcorpus",
+    action="store_true",
+    help="Download bookcorpus dataset",
 )
 parser.add_argument(
-    "train_tokenizer", action="store_true", help="Launch tokenizer training"
+    "--download_wikitext",
+    action="store_true",
+    help="Download wikitext dataset",
+)
+parser.add_argument(
+    "--download_glue",
+    action="store_true",
+    help="Download GLUE datasets",
+)
+parser.add_argument(
+    "--is_phonetic",
+    action="store_true",
+    help="Convert downloaded datasets to phonetic",
+)
+parser.add_argument("--train", action="store_true", help="Launch training process")
+parser.add_argument(
+    "--fine_tune", action="store_true", help="Launch fine-tuning process"
+)
+parser.add_argument(
+    "--train_tokenizer", action="store_true", help="Launch tokenizer training"
 )
 args = parser.parse_args()
 
@@ -36,6 +59,7 @@ default_args = {
     "tm::model_dir": "models",
     # Fine-tuning default arguments
     "ft::model_path": DEFAULT_MODEL,
+    "ft::tokenizer_path": f"{TOKENIZERS_DIR}/tokenizer_phonetic_BPE",
     "ft::all": "FALSE",
     "ft::n": "1",
     "ft::is_phonetic": "TRUE",
@@ -52,7 +76,7 @@ try:
         for line in f:
             if line.startswith("#") or line == "\n":
                 continue
-            key, value = line.split(" ", 1)
+            key, value = line.split("==", 1)
             config_args[key.strip()] = value.strip()
 except FileNotFoundError:
     print("Config file not found, using default arguments.")
@@ -63,13 +87,18 @@ config_args["tt::is_phonetic"] = config_args["tt::is_phonetic"].upper() == "TRUE
 config_args["tm::fp16"] = config_args["tm::fp16"].upper() == "TRUE"
 config_args["ft::all"] = config_args["ft::all"].upper() == "TRUE"
 
-# Execute the appropriate command
-if args.train:
-    start = time.time()
-    if "phonetic_bookcorpus" not in os.listdir(DATASETS_DIR):
-        print("Downloading bookcorpus dataset and converting to phonetic ...")
-        download_bookcorpus(is_phonetic=True)
+# Check if the datasets are downloaded
+if args.download_bookcorpus and not os.path.exists(f"{DATASETS_DIR}/bookcorpus"):
+    download_bookcorpus(is_phonetic=args.is_phonetic)
 
+elif args.download_wikitext and not os.path.exists(f"{DATASETS_DIR}/wikitext-103-raw-v1"):
+    download_wikitext(is_phonetic=args.is_phonetic)
+
+elif args.download_glue and not os.path.exists(f"{DATASETS_DIR}/glue"):
+    download_glue_dataset(is_phonetic=args.is_phonetic)
+
+# Execute the appropriate command
+elif args.train:
     # Train the model using config arguments
     timeit(train)(
         dataset_path=config_args["tm::dataset_path"],

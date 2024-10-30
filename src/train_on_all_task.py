@@ -65,10 +65,7 @@ def tokenize_function(examples, tokenizer, task_name):
     if len(fields) == 1:
         # sst2 case
         return tokenizer(
-            examples[fields[0]], 
-            truncation=True, 
-            max_length=MAX_LENGTH, 
-            padding=False
+            examples[fields[0]], truncation=True, max_length=MAX_LENGTH, padding=False
         )
     else:
         # the rest hopefully
@@ -190,7 +187,9 @@ def compute_metrics(trainer, dataset, task_name):
     if task_name == "stsb":
         result = metric.compute(predictions=preds, references=labels)
     else:
-        result = metric.compute(predictions=np.argmax(preds, axis=1), references=labels)
+        result = metric.compute(
+            predictions=np.argmax(preds, axis=1), references=labels
+        )
 
     return {task_name: result}
 
@@ -215,8 +214,12 @@ def _fine_tune_on_all_tasks(
     results = defaultdict(dict)
     task_name = list(task_to_fields.keys())[0]
     num_labels = task_to_num_labels[task_name]
-    
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+    except EnvironmentError as e:
+        print("Tokenizer not found, using default tokenizer.")
+        tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
 
     model_name = get_model_name(model_path)
@@ -263,7 +266,13 @@ def fine_tune_on_all_tasks(
     start = time.time()
     results = defaultdict(lambda: defaultdict(list))
     futures = [
-        _fine_tune_on_all_tasks(model_path, task_to_num_labels, is_phonetic, all, tokenizer_path)
+        _fine_tune_on_all_tasks(
+            model_path, 
+            task_to_num_labels, 
+            is_phonetic, 
+            all, 
+            tokenizer_path
+        )
         for _ in range(n)
     ]
 

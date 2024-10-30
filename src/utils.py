@@ -139,20 +139,25 @@ def timeit(func):
 
 
 # Download the 1.8M rows of wikitext-v3 :o
-def download_wikitext(dataset_name) -> list[str]:
+def download_wikitext(is_phonetic=False) -> None:
     start = time.time()
+    dataset_name = "wikitext-103-raw-v1"
     print(f"Downloading wikitext dataset: {dataset_name} ...")
     dataset = load_dataset(
         "Salesforce/wikitext", dataset_name, num_proc=num_processes
     )
+    if is_phonetic:
+        dataset = dataset.map(translate_to_phonetic, num_proc=num_processes, batched=True)
+        dataset_name = f"phonetic_{dataset_name}"
     wiki_dir = f"{DATASETS_DIR}/{dataset_name}"
     os.makedirs(wiki_dir, exist_ok=True)
     dataset.save_to_disk(wiki_dir, num_proc=num_processes)
     elapsed_time = time.time() - start
     print(f"Downloaded {dataset_name} dataset in {elapsed_time:.2f} seconds")
+    print(f"Saved dataset to {wiki_dir}")
 
 
-def download_bookcorpus(is_phonetic=False):
+def download_bookcorpus(is_phonetic=False) -> None:
     start = time.time()
     if "bookcorpus" not in os.listdir(DATASETS_DIR):
         bookcorpus = load_dataset(
@@ -171,7 +176,7 @@ def download_bookcorpus(is_phonetic=False):
         wiki = wiki.remove_columns([col for col in wiki.column_names if col != "text"])
         assert bookcorpus.features.type == wiki.features.type
         bookcorpus = concatenate_datasets([bookcorpus, wiki])
-        bookcorpus = bookcorpus.train_test_split(test_size=0.002)
+        bookcorpus = bookcorpus.train_test_split(test_size=1e-2)
         bookcorpus = DatasetDict(
             {"train": bookcorpus["train"], "validation": bookcorpus["test"]}
         )

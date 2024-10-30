@@ -1,24 +1,24 @@
 # Training model args:
-tm::dataset_path DATASETS/phonetic_bookcorpus
-tm::tokenizer_path tokenizers/tokenizer_phonetic_BPE
-tm::tokenizer_type BPE
-tm::is_phonetic TRUE
-tm::num_epochs 40
-tm::fp16 TRUE
-tm::batch_size 330
-tm::lr 0.0001
-tm::max_length 128
-tm::log_dir logs
-tm::model_dir models
-tm::custom_message "Training BERT phonetic on bookcorpus"
+tm::dataset_path==DATASETS/phonetic_bookcorpus
+tm::tokenizer_path==tokenizers/tokenizer_phonetic_BPE
+tm::tokenizer_type==BPE
+tm::is_phonetic==TRUE
+tm::num_epochs==40
+tm::fp16==TRUE
+tm::batch_size==256
+tm::lr==0.0001
+tm::max_length==128
+tm::log_dir==logs
+tm::model_dir==models
 
 # Fine_tuning args:
-ft::model_path psktoure/BERT_BPE_phonetic_cleaned_wikitext-103-raw-v1
-ft::is_phonetic TRUE
-ft::n 5
-ft::all TRUE
+ft::model_path==psktoure/BERT_BPE_phonetic_cleaned_wikitext-103-raw-v1
+ft::tokenizer_path==psktoure/BERT_BPE_phonetic_cleaned_wikitext-103-raw-v1
+ft::is_phonetic==TRUE
+ft::n==5
+ft::all==TRUE
 
 # Training tokenizer args:
-tt::dataset_path DATASETS/phonetic_bookcorpus
-tt::tokenizer_type BPE
-tt::is_phonetic TRUE
+tt::dataset_path==DATASETS/phonetic_bookcorpus
+tt::tokenizer_type==BPE
+tt::is_phonetic==TRUE

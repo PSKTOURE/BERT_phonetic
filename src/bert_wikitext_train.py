@@ -140,7 +140,7 @@ def train(
         trainer.train(resume_from_checkpoint=True)
     else:
         trainer.train()
-    trainer.push_to_hub("End of training")
-    tokenizer.push_to_hub(model_name)
+    if hub_token is not None:
+        trainer.push_to_hub("End of training")
     return trainer
 
