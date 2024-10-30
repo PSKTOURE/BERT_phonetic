@@ -120,10 +120,8 @@ def timeit(func):
         log_dir = kwargs.get("log_dir", ".")
         os.makedirs(log_dir, exist_ok=True)
 
-        custom_message = kwargs.get("message", "Training operation")
-
         log_message = (
-            f"{custom_message} for BERT_{tokenizer_type}_{dataset_name}:\n"
+            f"Training operation for BERT_{tokenizer_type}_{dataset_name}:\n"
             f"Elapsed time: {int(hours)}h {int(minutes)}m {int(seconds)}s\n"
             f"Total seconds: {elapsed_time:.2f}\n"
         )
@@ -197,7 +195,6 @@ def download_bookcorpus(is_phonetic=False):
             .map(filter_by_language, batched=True, num_proc=num_processes)
             .shuffle(seed=42)
         )
-        bookcorpus.save_to_disk(f"{DATASETS_DIR}/bookcorpus", num_proc=num_processes)
 
     if is_phonetic:
         bookcorpus = bookcorpus.map(translate_to_phonetic, batch_size=True, num_proc=num_processes)
