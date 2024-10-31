@@ -1,7 +1,6 @@
 # Define import
 from itertools import chain
 import os
-import argparse
 from datasets import load_from_disk
 from transformers import (
     Trainer,
@@ -11,7 +10,7 @@ from transformers import (
 from transformers import BertConfig, BertForMaskedLM
 from transformers import DataCollatorForLanguageModeling
 from src.config import MAX_LENGTH, MODEL_DIR, LOG_DIR, BATCH_SIZE
-from src.utils import num_processes, timeit
+from src.utils import num_processes
 from src.train_tokenizer import load_tokenizer
 
 ########### BERT TRAINING START HERE ############
