@@ -12,10 +12,10 @@ tm::log_dir==logs
 tm::model_dir==models
 
 # Fine_tuning args:
-ft::model_path==psktoure/BERT_BPE_phonetic_cleaned_wikitext-103-raw-v1
-ft::tokenizer_path==psktoure/BERT_BPE_phonetic_cleaned_wikitext-103-raw-v1
+ft::model_path==psktoure/BERT_WordLevel_phonetic_wikitext-103-raw-v1
+ft::tokenizer_path==psktoure/BERT_WordLevel_phonetic_wikitext-103-raw-v1
 ft::is_phonetic==TRUE
-ft::n==5
+ft::num_iterations==5
 ft::all==TRUE
 
 # Training tokenizer args:

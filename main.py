@@ -61,7 +61,7 @@ default_args = {
     "ft::model_path": DEFAULT_MODEL,
     "ft::tokenizer_path": f"{TOKENIZERS_DIR}/tokenizer_phonetic_BPE",
     "ft::all": "FALSE",
-    "ft::n": "1",
+    "ft::num_iterations": "1",
     "ft::is_phonetic": "TRUE",
     # Tokenizer training default arguments
     "tt::dataset_path": f"{DATASETS_DIR}/phonetic_cleaned_bookcorpus",
@@ -88,13 +88,13 @@ config_args["tm::fp16"] = config_args["tm::fp16"].upper() == "TRUE"
 config_args["ft::all"] = config_args["ft::all"].upper() == "TRUE"
 
 # Check if the datasets are downloaded
-if args.download_bookcorpus and not os.path.exists(f"{DATASETS_DIR}/bookcorpus"):
+if args.download_bookcorpus:
     download_bookcorpus(is_phonetic=args.is_phonetic)
 
 elif args.download_wikitext:
     download_wikitext(is_phonetic=args.is_phonetic)
 
-elif args.download_glue and not os.path.exists(f"{DATASETS_DIR}/glue"):
+elif args.download_glue:
     download_glue_dataset(is_phonetic=args.is_phonetic)
 
 # Execute the appropriate command
@@ -119,7 +119,7 @@ elif args.fine_tune:
         is_phonetic=config_args["ft::is_phonetic"],
         task_to_num_labels=task_to_num_labels,
         all=config_args["ft::all"],
-        n=int(config_args["ft::n"]),
+        num_iterations=int(config_args["ft::num_iterations"]),
         tokenizer_path=config_args["ft::tokenizer_path"],
     )
 

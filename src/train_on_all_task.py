@@ -210,6 +210,8 @@ def _fine_tune_on_all_tasks(
     is_phonetic: bool = False,
     all=False,
     tokenizer_path: str = None,
+    num_iterations: int = 1,
+    current_iteration: int = 1,
 ):
     results = defaultdict(dict)
     task_name = list(task_to_fields.keys())[0]
@@ -234,9 +236,8 @@ def _fine_tune_on_all_tasks(
             continue
 
         model.train()
-        print(
-            f"################Training {model_name} on {task_name} with {num_labels} labels################"
-        )
+        print(f"################Training {model_name} on {task_name} with {num_labels}", end=" ")
+        print(f"labels on iteration {current_iteration}/{num_iterations}################")
         print(f"Loading dataset {task_name} ...")
         dataset = load_glue_dataset_from_dir(task_name, is_phonetic)
         print("Sampling dataset ...")
@@ -256,7 +257,7 @@ def _fine_tune_on_all_tasks(
 
 
 def fine_tune_on_all_tasks(
-    n: int,
+    num_iterations: int,
     model_path: str,
     task_to_num_labels: dict,
     is_phonetic: bool = False,
@@ -267,13 +268,15 @@ def fine_tune_on_all_tasks(
     results = defaultdict(lambda: defaultdict(list))
     futures = [
         _fine_tune_on_all_tasks(
-            model_path, 
-            task_to_num_labels, 
-            is_phonetic, 
-            all, 
-            tokenizer_path
+            model_path,
+            task_to_num_labels,
+            is_phonetic=is_phonetic,
+            all=all,
+            tokenizer_path=tokenizer_path,
+            num_iterations=num_iterations,
+            current_iteration=i+1,
         )
-        for _ in range(n)
+        for i in range(num_iterations)
     ]
 
     keys = futures[0].keys()
