@@ -1,5 +1,4 @@
 # Define import
-from itertools import chain
 import os
 from datasets import load_from_disk
 from transformers import (
@@ -59,6 +58,7 @@ def train(
     dataset_path: str,
     tokenizer_path: str,
     num_epochs: int = 40,
+    max_steps: int = -1,
     batch_size: int = BATCH_SIZE,
     lr: float = 1e-4,
     max_length: int = MAX_LENGTH,
@@ -96,6 +96,7 @@ def train(
         output_dir=f"{model_dir}/{model_name}",
         overwrite_output_dir=True,
         num_train_epochs=num_epochs,
+        max_steps=max_steps,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         learning_rate=lr,
@@ -120,7 +121,7 @@ def train(
         eval_steps=2_000,
         gradient_accumulation_steps=4,
         hub_token=hub_token,
-        hub_model_id=f"{model_name}",
+        hub_model_id=model_name,
         push_to_hub=hub_token is not None,
         # gradient_checkpointing=True,
     )

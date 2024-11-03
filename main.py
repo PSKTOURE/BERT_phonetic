@@ -1,4 +1,3 @@
-import os
 import argparse
 from collections import defaultdict
 from src.config import DATASETS_DIR, TOKENIZERS_DIR, DEFAULT_MODEL
@@ -51,6 +50,7 @@ default_args = {
     "tm::tokenizer_type": "BPE",
     "tm::tokenizer_path": f"{TOKENIZERS_DIR}/tokenizer_phonetic_BPE",
     "tm::num_epochs": "40",
+    "tm::max_steps": "-1",
     "tm::fp16": "TRUE",
     "tm::batch_size": "256",
     "tm::lr": "0.0001",
@@ -105,6 +105,7 @@ elif args.train:
         tokenizer_type=config_args["tm::tokenizer_type"],
         tokenizer_path=config_args["tm::tokenizer_path"],
         num_epochs=int(config_args["tm::num_epochs"]),
+        max_steps=int(config_args["tm::max_steps"]),
         fp16=config_args["tm::fp16"],
         batch_size=int(config_args["tm::batch_size"]),
         lr=float(config_args["tm::lr"]),

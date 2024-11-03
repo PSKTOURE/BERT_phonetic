@@ -4,6 +4,7 @@ tm::tokenizer_path==tokenizers/tokenizer_phonetic_WordLevel
 tm::tokenizer_type==WordLevel
 tm::is_phonetic==TRUE
 tm::num_epochs==40
+tm::max_steps==106000
 tm::fp16==TRUE
 tm::batch_size==256
 tm::lr==0.0001

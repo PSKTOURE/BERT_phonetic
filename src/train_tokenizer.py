@@ -1,6 +1,5 @@
 import os
 import shutil
-import argparse
 from datasets import load_from_disk
 from tokenizers import Tokenizer
 from tokenizers.models import WordLevel, BPE, WordPiece

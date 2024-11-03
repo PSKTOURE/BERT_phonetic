@@ -72,12 +72,11 @@ def download_glue_dataset(is_phonetic=False):
         if is_phonetic:
             path = task_to_path_phonetic[task]
             dataset = dataset.map(
-                lambda x: translate_task_to_phonetic(x, task), num_proc=num_processes
+                lambda x: translate_task_to_phonetic(x, task), 
+                num_proc=num_processes
             )
         else:
             path = task_to_path[task]
-        if not os.path.exists(path):
-            os.makedirs(path)
         # save dataset
         dataset.save_to_disk(path, num_proc=num_processes)
 
