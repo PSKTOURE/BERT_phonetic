@@ -72,8 +72,7 @@ def download_glue_dataset(is_phonetic=False):
         if is_phonetic:
             path = task_to_path_phonetic[task]
             dataset = dataset.map(
-                lambda x: translate_task_to_phonetic(x, task), 
-                num_proc=num_processes
+                lambda x: translate_task_to_phonetic(x, task), num_proc=num_processes
             )
         else:
             path = task_to_path[task]
@@ -151,9 +150,13 @@ def download_wikitext(is_phonetic=False) -> None:
         dataset = load_from_disk(f"{DATASETS_DIR}/{dataset_name}")
     if is_phonetic:
         print("Translating to phonetic...")
-        dataset = dataset.map(
-            translate_to_phonetic, num_proc=num_processes, batched=True
-        ).filter(lambda x: len(x["text"]) > 0)
+        dataset = (
+            dataset.map(clean_text, num_proc=num_processes, batched=True)
+            .map(remove_exact_duplicates, num_proc=num_processes, batched=True)
+            .map(filter_by_language, num_proc=num_processes, batched=True)
+            .map(translate_to_phonetic, num_proc=num_processes, batched=True)
+            .filter(lambda x: len(x["text"]) > 0, num_proc=num_processes)
+        )
         dataset_name = f"phonetic_{dataset_name}"
     wiki_dir = f"{DATASETS_DIR}/{dataset_name}"
     dataset.save_to_disk(wiki_dir, num_proc=num_processes)
