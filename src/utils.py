@@ -34,6 +34,9 @@ task_to_fields = {
     "stsb": ("sentence1", "sentence2"),
     "wnli": ("sentence1", "sentence2"),
 }
+gen_fields = {
+    "rhyme": ("sentence1", "sentence2"),
+}
 task_to_num_labels = {
     "rte": 2,
     "sst2": 2,
@@ -55,6 +58,7 @@ task_to_metric = {
     "mrpc": ["f1"],
     "stsb": ["spearmanr"],
     "wnli": ["accuracy"],
+    "rhyme": ["accuracy"],
 }
 
 task_to_path = {
@@ -72,7 +76,9 @@ def download_glue_dataset(is_phonetic=False):
         if is_phonetic:
             path = task_to_path_phonetic[task]
             dataset = dataset.map(
-                lambda x: translate_task_to_phonetic(x, task), num_proc=num_processes
+                lambda x: translate_task_to_phonetic(x, task), 
+                num_proc=num_processes,
+                batched=True,
             )
         else:
             path = task_to_path[task]
@@ -255,6 +261,8 @@ def translate_to_phonetic(example):
 
 def translate_task_to_phonetic(example, task_name):
     fields = task_to_fields.get(task_name, None)
+    if not fields:
+        fields = gen_fields.get(task_name, None)
 
     if not fields:
         raise ValueError(f"Task {task_name} not found in task_to_fields dictionary.")

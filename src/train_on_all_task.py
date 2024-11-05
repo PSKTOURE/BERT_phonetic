@@ -3,7 +3,6 @@ import os
 import re
 import time
 import numpy as np
-import argparse
 import evaluate
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
@@ -16,10 +15,12 @@ from transformers import (
     DataCollatorWithPadding,
 )
 from transformers import DataCollatorWithPadding
+from datasets import load_from_disk
 from src.config import MAX_LENGTH, LOG_DIR, DEFAULT_MODEL
 from src.utils import (
     task_to_fields,
     task_to_num_labels,
+    gen_fields,
     task_to_metric,
     num_processes,
     load_glue_dataset_from_dir,
@@ -59,8 +60,11 @@ def sample_dataset(dataset, task_name, train_sample=2000, val_sample=200, all=Fa
 def tokenize_function(examples, tokenizer, task_name):
     fields = task_to_fields.get(task_name, None)
 
+    if fields is None:
+        fields = gen_fields.get(task_name, None)
+
     if not fields:
-        raise ValueError(f"Task {task_name} not found in task_to_fields dictionary.")
+        raise ValueError(f"Task {task_name} not found in task_to_fields or gen_fields")
 
     if len(fields) == 1:
         # sst2 case
@@ -187,9 +191,7 @@ def compute_metrics(trainer, dataset, task_name):
     if task_name == "stsb":
         result = metric.compute(predictions=preds, references=labels)
     else:
-        result = metric.compute(
-            predictions=np.argmax(preds, axis=1), references=labels
-        )
+        result = metric.compute(predictions=np.argmax(preds, axis=1), references=labels)
 
     return {task_name: result}
 
@@ -236,8 +238,13 @@ def _fine_tune_on_all_tasks(
             continue
 
         model.train()
-        print(f"################Training {model_name} on {task_name} with {num_labels}", end=" ")
-        print(f"labels on iteration {current_iteration}/{num_iterations}################")
+        print(
+            f"################Training {model_name} on {task_name} with {num_labels}",
+            end=" ",
+        )
+        print(
+            f"labels on iteration {current_iteration}/{num_iterations}################"
+        )
         print(f"Loading dataset {task_name} ...")
         dataset = load_glue_dataset_from_dir(task_name, is_phonetic)
         print("Sampling dataset ...")
@@ -274,7 +281,7 @@ def fine_tune_on_all_tasks(
             all=all,
             tokenizer_path=tokenizer_path,
             num_iterations=num_iterations,
-            current_iteration=i+1,
+            current_iteration=i + 1,
         )
         for i in range(num_iterations)
     ]
@@ -309,3 +316,25 @@ def fine_tune_on_all_tasks(
         f"Total seconds: {time_taken:.2f}\n"
     )
     print(log_message)
+
+
+def fine_tune_on_rhymes(
+    model_path: str,
+    dataset_path: str,
+    tokenizer_path: str,
+    task_name: str,
+    num_labels: int = 2,
+):
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_path, num_labels=num_labels, ignore_mismatched_sizes=True
+    )
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+    data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
+    dataset = load_from_disk(dataset_path)
+    print(dataset)
+    dataset = preprocess_dataset(dataset, tokenizer, task_name)
+    trainer = setup_trainer(model, dataset, tokenizer, data_collator, model_path, task_name)
+    trainer.train()
+    model.eval()
+    task_result = compute_metrics(trainer, dataset, task_name)
+    print(task_result)

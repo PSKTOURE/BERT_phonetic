@@ -13,22 +13,26 @@ rm ~/miniconda3/miniconda.sh
 
 2. Create virtual env:
 ```bash
-conda create --name bert python=3.10`
+conda create --name bert python=3.10
 conda activate bert
 ```
 3. Install requirements: `pip install -r requirements.txt`
 4. Install lex_lookup (necessary for epitran):\
 ```bash
+mkdir $HOME/.local/bin
+echo export PATH="$HOME/.local/bin:$PATH" >> .bashrc # or .zshrc
+source $HOME/.bashrc 
+conda activate bert
+cd
 git clone https://github.com/festvox/flite.git
 cd flite
-./configure --prefix=/home/.local/bin #(if you don't have sudo right add the prefix part)
+./configure --prefix=$HOME/.local
 make
 make install
+cd testsuite/
 make lex_lookup
-sudo cp lex_lookup /usr/local/bin # if sudo right else 
-cp lex_lookup /home/.local/bin
+cp lex_lookup $HOME/.local/bin
 ```
-Make sure that /home/.local/bin is in your $PATH.\
 5. Change hyperparameters in config.txt (optional)\
 6. The tokenizers has to be one of the listed in the tokenizers dir or from huggingface.\
 7. Set HunggingFace access token (optional):\
