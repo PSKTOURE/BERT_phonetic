@@ -87,6 +87,10 @@ config_args["tt::is_phonetic"] = config_args["tt::is_phonetic"].upper() == "TRUE
 config_args["tm::fp16"] = config_args["tm::fp16"].upper() == "TRUE"
 config_args["ft::all"] = config_args["ft::all"].upper() == "TRUE"
 
+print("Config arguments:")
+for key, value in config_args.items():
+    print(f"{key}: {value}")
+
 # Check if the datasets are downloaded
 if args.download_bookcorpus:
     download_bookcorpus(is_phonetic=args.is_phonetic)

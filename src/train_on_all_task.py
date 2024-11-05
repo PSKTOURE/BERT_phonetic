@@ -64,7 +64,9 @@ def tokenize_function(examples, tokenizer, task_name):
         fields = gen_fields.get(task_name, None)
 
     if not fields:
-        raise ValueError(f"Task {task_name} not found in task_to_fields or gen_fields")
+        raise ValueError(
+            f"Task {task_name} not found in task_to_fields or gen_fields"
+        )
 
     if len(fields) == 1:
         # sst2 case
@@ -119,7 +121,7 @@ def setup_trainer(model, dataset, tokenizer, data_collator, model_name, task_nam
         output_dir=f"./results/{model_name}",
         overwrite_output_dir=True,
         eval_strategy="no",
-        per_device_train_batch_size=64,
+        per_device_train_batch_size=256,
         per_device_eval_batch_size=32,
         save_strategy="no",
         # save_total_limit=1,
@@ -191,76 +193,18 @@ def compute_metrics(trainer, dataset, task_name):
     if task_name == "stsb":
         result = metric.compute(predictions=preds, references=labels)
     else:
-        result = metric.compute(predictions=np.argmax(preds, axis=1), references=labels)
+        result = metric.compute(
+            predictions=np.argmax(preds, axis=1), references=labels
+        )
 
     return {task_name: result}
 
 
 def get_model_name(model_path):
-    if not os.path.exists(model_path):
-        model_name = re.sub(r"/", "_", model_path)
-    else:
-        model_name = re.sub(r"/checkpoint-.*", "", model_path)
-        model_name = model_name.split("/")[-1]
-        print(f"Model name: {model_name}")
+    model_name = re.sub(r"/checkpoint-.*", "", model_path)
+    model_name = model_name.split("/")[-1]
+    print(f"Model name: {model_name}")
     return model_name
-
-
-def _fine_tune_on_all_tasks(
-    model_path: str,
-    task_to_num_labels: dict,
-    is_phonetic: bool = False,
-    all=False,
-    tokenizer_path: str = None,
-    num_iterations: int = 1,
-    current_iteration: int = 1,
-):
-    results = defaultdict(dict)
-    task_name = list(task_to_fields.keys())[0]
-    num_labels = task_to_num_labels[task_name]
-
-    try:
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-    except EnvironmentError as e:
-        print("Tokenizer not found, using default tokenizer.")
-        tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
-    data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
-
-    model_name = get_model_name(model_path)
-    for task_name in task_to_num_labels.keys():
-        num_labels = task_to_num_labels[task_name]
-        try:
-            model = AutoModelForSequenceClassification.from_pretrained(
-                model_path, num_labels=num_labels, ignore_mismatched_sizes=True
-            )
-        except EnvironmentError as e:
-            print(f"Error loading model: {e}")
-            continue
-
-        model.train()
-        print(
-            f"################Training {model_name} on {task_name} with {num_labels}",
-            end=" ",
-        )
-        print(
-            f"labels on iteration {current_iteration}/{num_iterations}################"
-        )
-        print(f"Loading dataset {task_name} ...")
-        dataset = load_glue_dataset_from_dir(task_name, is_phonetic)
-        print("Sampling dataset ...")
-        dataset = sample_dataset(dataset, task_name, all=all)
-        print("Tokenizing dataset ...")
-        dataset = preprocess_dataset(dataset, tokenizer, task_name)
-        trainer = setup_trainer(
-            model, dataset, tokenizer, data_collator, model_name, task_name
-        )
-        print("Training model ...")
-        trainer.train()
-        print("Evaluating model ...")
-        model.eval()
-        task_result = compute_metrics(trainer, dataset, task_name)
-        results.update(task_result)
-    return results
 
 
 def fine_tune_on_all_tasks(
@@ -273,16 +217,52 @@ def fine_tune_on_all_tasks(
 ):
     start = time.time()
     results = defaultdict(lambda: defaultdict(list))
+
+    def _fine_tune_on_all_tasks(current_iteration: int = 1):
+        one_iter_res = defaultdict(dict)
+        task_name = list(task_to_fields.keys())[0]
+        num_labels = task_to_num_labels[task_name]
+
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+        except EnvironmentError as e:
+            print("Tokenizer not found, using default tokenizer.")
+            tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
+        data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
+
+        model_name = get_model_name(model_path)
+        for task_name in task_to_num_labels.keys():
+            num_labels = task_to_num_labels[task_name]
+            try:
+                model = AutoModelForSequenceClassification.from_pretrained(
+                    model_path, num_labels=num_labels, ignore_mismatched_sizes=True
+                )
+            except EnvironmentError as e:
+                print(f"Error loading model: {e}")
+                continue
+
+            model.train()
+            print(f"################Training {model_name} on {task_name} with {num_labels}", end=" ")
+            print(f"labels on iteration {current_iteration}/{num_iterations}################")
+            print(f"Loading dataset {task_name} ...")
+            dataset = load_glue_dataset_from_dir(task_name, is_phonetic)
+            print("Sampling dataset ...")
+            dataset = sample_dataset(dataset, task_name, all=all)
+            print("Tokenizing dataset ...")
+            dataset = preprocess_dataset(dataset, tokenizer, task_name)
+            trainer = setup_trainer(
+                model, dataset, tokenizer, data_collator, model_name, task_name
+            )
+            print("Training model ...")
+            trainer.train()
+            print("Evaluating model ...")
+            model.eval()
+            task_result = compute_metrics(trainer, dataset, task_name)
+            one_iter_res.update(task_result)
+        return one_iter_res
+
     futures = [
-        _fine_tune_on_all_tasks(
-            model_path,
-            task_to_num_labels,
-            is_phonetic=is_phonetic,
-            all=all,
-            tokenizer_path=tokenizer_path,
-            num_iterations=num_iterations,
-            current_iteration=i + 1,
-        )
+        _fine_tune_on_all_tasks(current_iteration=i + 1)
         for i in range(num_iterations)
     ]
 
@@ -324,17 +304,37 @@ def fine_tune_on_rhymes(
     tokenizer_path: str,
     task_name: str,
     num_labels: int = 2,
+    num_iterations: int = 5,
 ):
-    model = AutoModelForSequenceClassification.from_pretrained(
-        model_path, num_labels=num_labels, ignore_mismatched_sizes=True
-    )
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-    data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
-    dataset = load_from_disk(dataset_path)
-    print(dataset)
-    dataset = preprocess_dataset(dataset, tokenizer, task_name)
-    trainer = setup_trainer(model, dataset, tokenizer, data_collator, model_path, task_name)
-    trainer.train()
-    model.eval()
-    task_result = compute_metrics(trainer, dataset, task_name)
-    print(task_result)
+    model_name = get_model_name(model_path)
+
+    def _fine_tune_on_rhymes(iteration: int):
+        print(f"##############Fine-tuning {model_name} on {task_name} :", end=" ")
+        print(f"Iteration {iteration + 1}/{num_iterations}##############")
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_path, num_labels=num_labels, ignore_mismatched_sizes=True
+        )
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+        data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
+        dataset = load_from_disk(dataset_path)
+        dataset = preprocess_dataset(dataset, tokenizer, task_name)
+        trainer = setup_trainer(
+            model, dataset, tokenizer, data_collator, model_path, task_name
+        )
+        trainer.train()
+        model.eval()
+        task_result = compute_metrics(trainer, dataset, task_name)
+        return task_result
+
+    futures = [_fine_tune_on_rhymes(i) for i in range(num_iterations)]
+    results = defaultdict(lambda: defaultdict(list))
+    for result in futures:
+        results[task_name]["accuracy"].append(result[task_name]["accuracy"])
+    results[task_name]["accuracy"] = {
+        "mean": np.mean(results[task_name]["accuracy"]),
+        "std": np.std(results[task_name]["accuracy"]),
+    }
+    with open(f"{LOG_DIR}/rhyme_results.tsv", "a") as f:
+        f.write(f"{model_name}\t{task_name}\t{results[task_name]['accuracy']}\n")
+    print(f"Results saved to {LOG_DIR}/rhyme_results.tsv")
+    return results

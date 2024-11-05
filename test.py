@@ -11,15 +11,25 @@ from src.utils import translate_task_to_phonetic
 # print(dataset["train"][0])
 
 
-model_path = "psktoure/BERT_WordPiece_phonetic_cleaned_wikitext-103-raw-v1"
+model_paths = [
+    "psktoure/BERT_BPE_phonetic_cleaned_wikitext-103-raw-v1",
+    "psktoure/BERT_BPE_phonetic_wikitext-103-raw-v1",
+    "psktoure/BERT_WordPiece_phonetic_cleaned_wikitext-103-raw-v1",
+    "psktoure/BERT_WordPiece_phonetic_wikitext-103-raw-v1",
+    "psktoure/BERT_WordLevel_phonetic_wikitext-103-raw-v1",
+]
 dataset_path = f"{DATASETS_DIR}/verses/phonetic_hf_rhymes"
-tokenizer_path = "psktoure/BERT_WordPiece_phonetic_cleaned_wikitext-103-raw-v1"
 task = "rhyme"
-fine_tune_on_rhymes(
-    model_path=model_path,
-    tokenizer_path=tokenizer_path,
-    dataset_path=dataset_path,
-    task_name=task,
-)
-#{'rhyme': {'accuracy': 0.7584950694051881}}
-#{'rhyme': {'accuracy': 0.6679228691665097}}
+for model_path in model_paths:
+    print(f"Fine-tuning {model_path} on {task}")
+    fine_tune_on_rhymes(
+        model_path=model_path,
+        dataset_path=dataset_path,
+        tokenizer_path=model_path,
+        task_name=task
+    )
+#bert-base : {'rhyme': {'accuracy': 0.7584950694051881}}
+#bert_WP_pho_cleaned : {'rhyme': {'accuracy': 0.6679228691665097}}
+#bert_WP_ph : {'rhyme': {'accuracy': 0.6338797814207651}}
+#bert_BPE_pho: {'rhyme': {'accuracy': 0.6793543119150807}}
+#bert_BPE_pho_cleaned : {'rhyme': {'accuracy': 0.6524087682934488}}
