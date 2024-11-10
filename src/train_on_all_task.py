@@ -118,7 +118,7 @@ class CustomTrainer(Trainer):
 def setup_trainer(model, dataset, tokenizer, data_collator, model_name, task_name):
     # Define training arguments
     training_args = TrainingArguments(
-        output_dir=f"./results/{model_name}",
+        output_dir=f"/tmp/{model_name}",
         overwrite_output_dir=True,
         eval_strategy="no",
         per_device_train_batch_size=256,
@@ -304,7 +304,7 @@ def fine_tune_on_rhymes(
     tokenizer_path: str,
     task_name: str,
     num_labels: int = 2,
-    num_iterations: int = 5,
+    num_iterations: int = 3,
 ):
     model_name = get_model_name(model_path)
 
