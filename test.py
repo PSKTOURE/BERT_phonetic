@@ -1,4 +1,4 @@
-from src.homophones import fine_tune_on_homophones
+from custom_task import fine_tune_on_task
 from src.config import DATASETS_DIR
 
 model_paths = [
@@ -10,18 +10,20 @@ model_paths = [
     "psktoure/BERT_BPE_phonetic_cleaned_wikitext-103-raw-v1",
     "psktoure/BERT_WordLevel_phonetic_wikitext-103-raw-v1"
 ]
-is_phonetic = [False, False, True, True, True, True, True]
 
-dataset_path = f"{DATASETS_DIR}/homophones_data/hf_dataset"
 
-for model_path, phonetic in zip(model_paths, is_phonetic):
-    fine_tune_on_homophones(
+dataset_paths = [f"{DATASETS_DIR}/etymology/etymology_pairs_hf"] * 2 + [f"{DATASETS_DIR}/etymology/etymology_pairs_hf_phonetic"] * 5
+
+
+for model_path, dataset_path in zip(model_paths, dataset_paths):
+    fine_tune_on_task(
         model_path=model_path, 
         dataset_path=dataset_path, 
         tokenizer_path=model_path, 
         num_iterations=5, 
-        batch_size=256,
+        batch_size=512,
         num_epochs=3,
-        is_phonetic=phonetic
+        use_roc=False,
+        log_file="etymology_results.tsv"
     )
 
