@@ -15,6 +15,19 @@ import numpy as np
 import multiprocessing
 from src.config import DATASETS_DIR, LOG_DIR
 
+task_to_fields = {
+    "homophones": ("word1", "word2"),
+    "rhyme": ("sentence1", "sentence2"),
+    "etymology": ("word1", "word2"),
+    "verses": ("Verse",)
+}
+task_to_num_labels = {
+    "homophones": 2,
+    "rhyme": 2,
+    "etymology": 2,
+    "verses": 4
+}
+
 num_proc = multiprocessing.cpu_count() - 1
 dataset_path = f"{DATASETS_DIR}/homophones_data/hf_dataset"
 epi = epitran.Epitran("eng-Latn")
@@ -28,6 +41,7 @@ def fine_tune_on_task(
     batch_size: int = 256,
     num_epochs: int = 3,
     use_roc: bool = False,
+    task: str = "homophones",
     log_file: str = "homophones_results.tsv",
 ):
     dataset = load_from_disk(dataset_path)
@@ -35,28 +49,32 @@ def fine_tune_on_task(
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
     def tokenize_function(examples):
+        fields = task_to_fields[task]
+        if len(fields) == 1:
+            return tokenizer(examples[fields[0]], padding=False, truncation=True, max_length=128)
         return tokenizer(
-            examples["word1"],
-            examples["word2"],
+            examples[fields[0]],
+            examples[fields[1]],
             padding=False,
             truncation=True,
             max_length=128,
         )
-
+        
     encoded_dataset = dataset.map(
         tokenize_function,
         batched=True,
         num_proc=num_proc,
-        remove_columns=["word1", "word2"],
+        remove_columns=task_to_fields[task] ,
     )
     data_collector = DataCollatorWithPadding(tokenizer=tokenizer)
-    roc = evaluate.load("roc_auc")
+    
     model_name = model_path.split("/")[-1]
     metric = "roc_auc" if use_roc else "accuracy"
+    num_labels = task_to_num_labels[task]
 
     def _fine_tune_on_task(iteration):
         model = AutoModelForSequenceClassification.from_pretrained(
-            model_path, num_labels=2
+            model_path, num_labels=num_labels, ignore_mismatched_sizes=True
         )
 
         training_args = TrainingArguments(
@@ -70,7 +88,6 @@ def fine_tune_on_task(
             overwrite_output_dir=True,
             fp16=True,
             seed=np.random.randint(1e6),
-            gradient_accumulation_steps=4,
         )
 
         trainer = Trainer(
@@ -88,11 +105,12 @@ def fine_tune_on_task(
         predictions = trainer.predict(encoded_dataset["test"])
         preds, labels = predictions.predictions, predictions.label_ids
         if use_roc:
+            roc = evaluate.load("roc_auc")
             pred_scores = softmax(preds, axis=1)[:, 1]
             roc_score = roc.compute(references=labels, prediction_scores=pred_scores)
             score = roc_score[metric]
         else:
-            preds = np.argmax(preds, axis=1)
+            preds = np.argmax(preds, axis=-1)
             score = np.mean(preds == labels)
         return score
 

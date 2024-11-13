@@ -1,4 +1,4 @@
-from custom_task import fine_tune_on_task
+from src.custom_task import fine_tune_on_task
 from src.config import DATASETS_DIR
 
 model_paths = [
@@ -12,7 +12,7 @@ model_paths = [
 ]
 
 
-dataset_paths = [f"{DATASETS_DIR}/etymology/etymology_pairs_hf"] * 2 + [f"{DATASETS_DIR}/etymology/etymology_pairs_hf_phonetic"] * 5
+dataset_paths = [f"{DATASETS_DIR}/verses/verses_hf"] * 2 + [f"{DATASETS_DIR}/verses/phonetic_verses_hf"] * 5
 
 
 for model_path, dataset_path in zip(model_paths, dataset_paths):
@@ -24,6 +24,7 @@ for model_path, dataset_path in zip(model_paths, dataset_paths):
         batch_size=512,
         num_epochs=3,
         use_roc=False,
-        log_file="etymology_results.tsv"
+        task="verses",
+        log_file="verses_results.tsv"
     )
 
