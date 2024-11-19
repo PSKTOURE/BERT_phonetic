@@ -102,7 +102,7 @@ def compute_loss_for_task(model, inputs, task_name):
     logits = outputs.logits
     loss_fct = MSELoss()
     loss = loss_fct(logits.view(-1), labels.view(-1))
-    return loss
+    return loss, outputs
 
 
 class CustomTrainer(Trainer):
@@ -111,8 +111,8 @@ class CustomTrainer(Trainer):
         self.task_name = task_name
 
     def compute_loss(self, model, inputs, return_outputs=False):
-        loss = compute_loss_for_task(model, inputs, self.task_name)
-        return (loss, model(**inputs)) if return_outputs else loss
+        loss, outputs = compute_loss_for_task(model, inputs, self.task_name)
+        return (loss, outputs) if return_outputs else loss
 
 
 def setup_trainer(model, dataset, tokenizer, data_collator, model_name, task_name):
