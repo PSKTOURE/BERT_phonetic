@@ -1,7 +1,7 @@
 {
   "added_tokens_decoder": {
     "0": {
-      "content": "[UNK]",
+      "content": "[PAD]",
       "lstrip": false,
       "normalized": false,
       "rstrip": false,
@@ -25,7 +25,7 @@
       "special": true
     },
     "3": {
-      "content": "[PAD]",
+      "content": "[MASK]",
       "lstrip": false,
       "normalized": false,
       "rstrip": false,
@@ -33,7 +33,15 @@
       "special": true
     },
     "4": {
-      "content": "[MASK]",
+      "content": "[WORD]",
+      "lstrip": false,
+      "normalized": false,
+      "rstrip": false,
+      "single_word": false,
+      "special": true
+    },
+    "5": {
+      "content": "[UNK]",
       "lstrip": false,
       "normalized": false,
       "rstrip": false,

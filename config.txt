@@ -1,7 +1,7 @@
 # Training model args:
-tm::dataset_path==DATASETS/phonetic_cleaned_wikitext-103-raw-v1
-tm::tokenizer_path==tokenizers/tokenizer_phonetic_BPE
-tm::tokenizer_type==BPE
+tm::dataset_path==DATASETS/phonetic_WordLevel_wikitext
+tm::tokenizer_path==tokenizers/tokenizer_phonetic_WordLevel
+tm::tokenizer_type==WordLevel
 tm::is_phonetic==TRUE
 tm::num_epochs==40
 tm::max_steps==106000

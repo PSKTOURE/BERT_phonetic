@@ -84,6 +84,7 @@ def train(
 
     config = setup_bert_config(vocab_size=vocab_size)
     model = BertForMaskedLM(config)
+    model.resize_token_embeddings(len(tokenizer))
 
     data_collator_mlm = DataCollatorForLanguageModeling(
         tokenizer=tokenizer,
