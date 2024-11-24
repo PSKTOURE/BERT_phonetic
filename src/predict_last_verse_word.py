@@ -26,7 +26,7 @@ num_processes = os.cpu_count() - 1
 
 class CustomDataCollator:
     def __init__(
-        self, tokenizer: PreTrainedTokenizerBase, padding=True, max_length=128
+        self, tokenizer: PreTrainedTokenizerBase, padding=True, max_length=256
     ):
         self.tokenizer = tokenizer
         self.mask_token_id = tokenizer.mask_token_id
@@ -74,36 +74,21 @@ class CustomDataCollator:
 def predict(
     dataset_path: str,
     model_path: str,
-    is_phonetic: str,
     num_epochs: int = 3,
     batch_size: int = 256,
     num_iterations: int = 5,
+    k: int = 5,
     log_file: str = "predict_last_word.tsv",
 ):
-    
-    @lru_cache(maxsize=None)
-    def xsampa_list(word: str) -> list:
-        return epi.xsampa_list(word)
-    
-    def rhyme_score(word1: str, word2: str) -> int:
-        if not is_phonetic:    
-            end1 = xsampa_list(word1)
-            end2 = xsampa_list(word2)
-        else:
-            end1 = word1
-            end2 = word2
-        length = min(len(end1), len(end2), 3)
-        end1 = end1[-length:]
-        end2 = end2[-length:]
-        return SequenceMatcher(None, end1, end2).ratio()
     
     def evaluate_rhyme(model, dataset, tokenizer):
         model = model.to("cuda")
         model.eval()
-        rhyme_scores = []
+        res = []
+        batch_size = 256
 
         for i in range(0, len(dataset), batch_size):
-            print(f"Processing example {i}/{len(dataset)} ...", end="\r")
+            print(f"Processing batch {i}/{len(dataset)}...", end="\r")
             batch = dataset[i : i + batch_size]
             batch_sequence = [{key: batch[key][j] for key in batch} for j in range(len(batch["sentence1"]))]
             inputs = data_collator(batch_sequence)
@@ -112,17 +97,34 @@ def predict(
             with torch.no_grad():
                 outputs = model(**inputs)
                 logits = outputs.logits
+                labels = inputs["labels"]
+
+            count = 0
 
             for j in range(len(batch["sentence1"])):
-                masked_token_index = torch.where(inputs["input_ids"][j] == tokenizer.mask_token_id)[0]
-                predicted_index = logits[j, masked_token_index].argmax(-1)
-                predicted_word = tokenizer.decode(predicted_index)
-                target = tokenizer.decode(inputs["labels"][j, masked_token_index])
-                rhyme_scores.append(rhyme_score(predicted_word, target))
+                # Identify the position of the masked token
+                masked_token_index = (inputs["input_ids"][j] == tokenizer.mask_token_id).nonzero(as_tuple=True)[0]
+                # Get the target
+                targets = labels[j, masked_token_index]
+                # Get the top-k predictions
+                top_k_indices = logits[j, masked_token_index].topk(k).indices.squeeze(0)
+                if i < 16 and j < 8:
+                    print('targets:', targets, '-- top_k_indices:', top_k_indices)
 
-        return np.mean(rhyme_scores)
-    
-    
+                # Check if the target index is in the top-k predictions
+                ok = True
+                for idx, target in enumerate(targets):
+                    if target not in top_k_indices[idx]:
+                        ok = False
+                if ok:
+                    count += 1
+
+            # Append accuracy for this batch
+            res.append(count / len(batch["sentence1"]))
+
+        # Return the mean Top-k Accuracy
+        return np.mean(res)
+
     def one_iteration_training(num_iter: int):
         model = AutoModelForMaskedLM.from_pretrained(model_path)
         

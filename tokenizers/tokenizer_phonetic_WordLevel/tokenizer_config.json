@@ -33,14 +33,6 @@
       "special": true
     },
     "4": {
-      "content": "[WORD]",
-      "lstrip": false,
-      "normalized": false,
-      "rstrip": false,
-      "single_word": false,
-      "special": true
-    },
-    "5": {
       "content": "[UNK]",
       "lstrip": false,
       "normalized": false,

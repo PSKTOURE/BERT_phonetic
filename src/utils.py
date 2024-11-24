@@ -34,9 +34,7 @@ task_to_fields = {
     "stsb": ("sentence1", "sentence2"),
     "wnli": ("sentence1", "sentence2"),
 }
-gen_fields = {
-    "rhyme": ("sentence1", "sentence2"),
-}
+
 task_to_num_labels = {
     "rte": 2,
     "sst2": 2,
@@ -58,7 +56,6 @@ task_to_metric = {
     "mrpc": ["f1"],
     "stsb": ["spearmanr"],
     "wnli": ["accuracy"],
-    "rhyme": ["accuracy"],
 }
 
 task_to_path = {
@@ -69,14 +66,23 @@ task_to_path_phonetic = {
 }
 
 
-def download_glue_dataset(is_phonetic=False):
+def download_glue_dataset(is_phonetic=False, phoneme=False):
     for task in GLUE_TASKS:
         print(f"Downloading {task} dataset")
         dataset = load_dataset("glue", task)
-        if is_phonetic:
+        if phoneme:
+            path = task_to_path_phonetic[task].split("/")
+            path[-2] = "phonetic_phonemes"
+            path = "/".join(path)
+            dataset = dataset.map(
+                lambda x: translate_task_to_phonetic(x, task, prefix=" "),
+                num_proc=num_processes,
+                batched=True,
+            )
+        elif is_phonetic:
             path = task_to_path_phonetic[task]
             dataset = dataset.map(
-                lambda x: translate_task_to_phonetic(x, task), 
+                lambda x: translate_task_to_phonetic(x, task),
                 num_proc=num_processes,
                 batched=True,
             )
@@ -244,36 +250,39 @@ def convert_to_phonetic(dataset_path):
 
 @lru_cache(maxsize=None)
 def cached_xsampa(word):
-    return "".join(epi.xsampa_list(word))
+    return " ".join(epi.xsampa_list(word))
 
 
-def xsampa(sentences):
+def xsampa(sentences, prefix=""):
     return [
-        " ".join(map(cached_xsampa, re.findall(r"\w+|[^\s\w]+", sentence)))
+        " ".join(cached_xsampa(word) + prefix for word in re.findall(r"\w+|[^\s\w]+", sentence))
         for sentence in sentences
     ]
 
+    # return [
+    #     " ".join(map(cached_xsampa, re.findall(r"\w+|[^\s\w]+", sentence)))
+    #     for sentence in sentences
+    # ]
 
-def translate_to_phonetic(example):
-    sentences = xsampa(example["text"])
+
+def translate_to_phonetic(example, prefix=""):
+    sentences = xsampa(example["text"], prefix)
     return {"text": sentences}
 
 
-def translate_task_to_phonetic(example, task_name):
+def translate_task_to_phonetic(example, task_name, prefix=""):
     fields = task_to_fields.get(task_name, None)
-    if not fields:
-        fields = gen_fields.get(task_name, None)
 
     if not fields:
         raise ValueError(f"Task {task_name} not found in task_to_fields dictionary.")
 
     if len(fields) == 1:
         # sst2 case
-        example[fields[0]] = xsampa(example[fields[0]])
+        example[fields[0]] = xsampa(example[fields[0]], prefix)
     else:
         # the rest hopefully
-        example[fields[0]] = xsampa(example[fields[0]])
-        example[fields[1]] = xsampa(example[fields[1]])
+        example[fields[0]] = xsampa(example[fields[0]], prefix)
+        example[fields[1]] = xsampa(example[fields[1]], prefix)
 
     return example
 

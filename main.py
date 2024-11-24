@@ -63,6 +63,7 @@ default_args = {
     "ft::all": "FALSE",
     "ft::num_iterations": "1",
     "ft::is_phonetic": "TRUE",
+    "ft::phoneme": "FALSE",
     # Tokenizer training default arguments
     "tt::dataset_path": f"{DATASETS_DIR}/phonetic_cleaned_bookcorpus",
     "tt::tokenizer_type": "BPE",
@@ -84,6 +85,7 @@ except FileNotFoundError:
 # Convert string arguments to appropriate types
 config_args["ft::is_phonetic"] = config_args["ft::is_phonetic"].upper() == "TRUE"
 config_args["tt::is_phonetic"] = config_args["tt::is_phonetic"].upper() == "TRUE"
+config_args["ft::phoneme"] = config_args["ft::phoneme"].upper() == "TRUE"
 config_args["tm::fp16"] = config_args["tm::fp16"].upper() == "TRUE"
 config_args["ft::all"] = config_args["ft::all"].upper() == "TRUE"
 
@@ -122,6 +124,7 @@ elif args.fine_tune:
     fine_tune_on_all_tasks(
         model_path=config_args["ft::model_path"],
         is_phonetic=config_args["ft::is_phonetic"],
+        phoneme=config_args["ft::phoneme"],
         task_to_num_labels=task_to_num_labels,
         all=config_args["ft::all"],
         num_iterations=int(config_args["ft::num_iterations"]),

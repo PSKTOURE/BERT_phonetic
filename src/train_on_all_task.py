@@ -20,7 +20,6 @@ from src.config import MAX_LENGTH, LOG_DIR, DEFAULT_MODEL
 from src.utils import (
     task_to_fields,
     task_to_num_labels,
-    gen_fields,
     task_to_metric,
     num_processes,
     load_glue_dataset_from_dir,
@@ -59,9 +58,6 @@ def sample_dataset(dataset, task_name, train_sample=2000, val_sample=200, all=Fa
 
 def tokenize_function(examples, tokenizer, task_name):
     fields = task_to_fields.get(task_name, None)
-
-    if fields is None:
-        fields = gen_fields.get(task_name, None)
 
     if not fields:
         raise ValueError(
@@ -102,7 +98,7 @@ def compute_loss_for_task(model, inputs, task_name):
     logits = outputs.logits
     loss_fct = MSELoss()
     loss = loss_fct(logits.view(-1), labels.view(-1))
-    return loss, outputs
+    return loss
 
 
 class CustomTrainer(Trainer):
@@ -111,8 +107,8 @@ class CustomTrainer(Trainer):
         self.task_name = task_name
 
     def compute_loss(self, model, inputs, return_outputs=False):
-        loss, outputs = compute_loss_for_task(model, inputs, self.task_name)
-        return (loss, outputs) if return_outputs else loss
+        loss = compute_loss_for_task(model, inputs, self.task_name)
+        return (loss, model(**inputs)) if return_outputs else loss
 
 
 def setup_trainer(model, dataset, tokenizer, data_collator, model_name, task_name):
@@ -212,6 +208,7 @@ def fine_tune_on_all_tasks(
     model_path: str,
     task_to_num_labels: dict,
     is_phonetic: bool = False,
+    phoneme: bool = False,
     all=False,
     tokenizer_path: str = None,
 ):
@@ -245,7 +242,7 @@ def fine_tune_on_all_tasks(
             print(f"################Training {model_name} on {task_name} with {num_labels}", end=" ")
             print(f"labels on iteration {current_iteration}/{num_iterations}################")
             print(f"Loading dataset {task_name} ...")
-            dataset = load_glue_dataset_from_dir(task_name, is_phonetic)
+            dataset = load_glue_dataset_from_dir(task_name, is_phonetic, phoneme)
             print("Sampling dataset ...")
             dataset = sample_dataset(dataset, task_name, all=all)
             print("Tokenizing dataset ...")
@@ -296,45 +293,3 @@ def fine_tune_on_all_tasks(
         f"Total seconds: {time_taken:.2f}\n"
     )
     print(log_message)
-
-
-def fine_tune_on_rhymes(
-    model_path: str,
-    dataset_path: str,
-    tokenizer_path: str,
-    task_name: str,
-    num_labels: int = 2,
-    num_iterations: int = 3,
-):
-    model_name = get_model_name(model_path)
-
-    def _fine_tune_on_rhymes(iteration: int):
-        print(f"##############Fine-tuning {model_name} on {task_name} :", end=" ")
-        print(f"Iteration {iteration + 1}/{num_iterations}##############")
-        model = AutoModelForSequenceClassification.from_pretrained(
-            model_path, num_labels=num_labels, ignore_mismatched_sizes=True
-        )
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-        data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
-        dataset = load_from_disk(dataset_path)
-        dataset = preprocess_dataset(dataset, tokenizer, task_name)
-        trainer = setup_trainer(
-            model, dataset, tokenizer, data_collator, model_path, task_name
-        )
-        trainer.train()
-        model.eval()
-        task_result = compute_metrics(trainer, dataset, task_name)
-        return task_result
-
-    futures = [_fine_tune_on_rhymes(i) for i in range(num_iterations)]
-    results = defaultdict(lambda: defaultdict(list))
-    for result in futures:
-        results[task_name]["accuracy"].append(result[task_name]["accuracy"])
-    results[task_name]["accuracy"] = {
-        "mean": np.mean(results[task_name]["accuracy"]),
-        "std": np.std(results[task_name]["accuracy"]),
-    }
-    with open(f"{LOG_DIR}/rhyme_results.tsv", "a") as f:
-        f.write(f"{model_name}\t{task_name}\t{results[task_name]['accuracy']}\n")
-    print(f"Results saved to {LOG_DIR}/rhyme_results.tsv")
-    return results
