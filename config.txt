@@ -1,5 +1,5 @@
 # Training model args:
-tm::dataset_path==DATASETS/phonetic_WordLevel_wikitext
+tm::dataset_path==DATASETS/phoneme_wikitext
 tm::tokenizer_path==tokenizers/tokenizer_phonetic_WordLevel
 tm::tokenizer_type==WordLevel
 tm::is_phonetic==TRUE
