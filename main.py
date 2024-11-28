@@ -46,7 +46,7 @@ args = parser.parse_args()
 # Load default config arguments from config.txt
 default_args = {
     # Training default arguments
-    "tm::dataset_path": f"{DATASETS_DIR}/phonetic_cleaned_bookcorpus",
+    "tm::dataset_path": f"{DATASETS_DIR}/phonetic_bookcorpus",
     "tm::tokenizer_type": "BPE",
     "tm::tokenizer_path": f"{TOKENIZERS_DIR}/tokenizer_phonetic_BPE",
     "tm::num_epochs": "40",
@@ -57,9 +57,10 @@ default_args = {
     "tm::max_length": "128",
     "tm::log_dir": "logs",
     "tm::model_dir": "models",
+    "tm::percent": "0.1",
     # Fine-tuning default arguments
     "ft::model_path": DEFAULT_MODEL,
-    "ft::tokenizer_path": f"{TOKENIZERS_DIR}/tokenizer_phonetic_BPE",
+    "ft::tokenizer_path": f"bert-base-uncased",
     "ft::all": "FALSE",
     "ft::num_iterations": "1",
     "ft::is_phonetic": "TRUE",
@@ -118,6 +119,7 @@ elif args.train:
         max_length=int(config_args["tm::max_length"]),
         log_dir=config_args["tm::log_dir"],
         model_dir=config_args["tm::model_dir"],
+        percent=float(config_args["tm::percent"]),
     )
 
 elif args.fine_tune:

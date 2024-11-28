@@ -1,16 +1,17 @@
 # Training model args:
-tm::dataset_path==DATASETS/phoneme_wikitext
-tm::tokenizer_path==tokenizers/tokenizer_phonetic_WordLevel
+tm::dataset_path==DATASETS/phonetic_bookcorpus
+tm::tokenizer_path==tokenizers/tokenizer_phonetic_BPE
 tm::tokenizer_type==WordLevel
 tm::is_phonetic==TRUE
 tm::num_epochs==40
-tm::max_steps==106000
+tm::max_steps==-1
 tm::fp16==TRUE
-tm::batch_size==256
+tm::batch_size==320
 tm::lr==0.0001
-tm::max_length==256
+tm::max_length==128
 tm::log_dir==logs
 tm::model_dir==models
+tm::percent==0.1
 
 # Fine_tuning args:
 ft::model_path==psktoure/BERT_WordLevel_phonetic_WordLevel_wikitext
@@ -21,6 +22,6 @@ ft::num_iterations==5
 ft::all==TRUE
 
 # Training tokenizer args:
-tt::dataset_path==DATASETS/phonetic_wikitext-103-raw-v1
-tt::tokenizer_type==WordLevel
+tt::dataset_path==DATASETS/phonetic_bookcorpus
+tt::tokenizer_type==BPE
 tt::is_phonetic==TRUE

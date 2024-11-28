@@ -24,6 +24,8 @@ from src.config import DATASETS_DIR
 #         max_length=256,
 #     )
     
-from src.utils import download_wikitext
-download_wikitext(is_phonetic=True, phoneme=True)
+from datasets import load_from_disk
 
+dataset = load_from_disk(f"{DATASETS_DIR}/phonetic_bookcorpus")
+print(dataset)
+print(dataset["train"][:10])

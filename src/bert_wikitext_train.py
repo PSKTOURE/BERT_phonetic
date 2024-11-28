@@ -66,6 +66,7 @@ def train(
     tokenizer_type: str = "WordPiece",
     log_dir: str = LOG_DIR,
     model_dir: str = MODEL_DIR,
+    percent: float = 0.1,
 ) -> Trainer:
     dataset_name = os.path.basename(dataset_path)
     print(
@@ -80,6 +81,11 @@ def train(
         dataset = load_from_disk(dataset_path)
     except:
         raise ValueError(f"Dataset {dataset_path} not found")
+    train_len = len(dataset["train"])
+    val_len = len(dataset["validation"])
+    dataset["train"] = dataset["train"].select(range(int(train_len * percent)))
+    dataset["validation"] = dataset["validation"].select(range(int(val_len * percent)))
+    print(dataset)
     dataset_tokenized = preprocess_dataset(dataset, tokenizer, max_length=max_length)
 
     config = setup_bert_config(vocab_size=vocab_size)
@@ -92,7 +98,7 @@ def train(
         mlm_probability=0.15,
     )
     hub_token = os.getenv("HF_TOKEN")
-    model_name = f"BERT_{tokenizer_type}_{dataset_name}"
+    model_name = f"BERT_{tokenizer_type}_{dataset_name}_{percent}"
     training_args = TrainingArguments(
         output_dir=f"{model_dir}/{model_name}",
         overwrite_output_dir=True,
@@ -111,7 +117,7 @@ def train(
         warmup_steps=10_000,
         save_total_limit=1,
         load_best_model_at_end=True,
-        resume_from_checkpoint=True,
+        resume_from_checkpoint='latest',
         dataloader_num_workers=num_processes,
         logging_dir=f"{log_dir}/tensorboard_{model_name}",
         logging_steps=100,
@@ -124,7 +130,6 @@ def train(
         hub_token=hub_token,
         hub_model_id=model_name,
         push_to_hub=hub_token is not None,
-        # gradient_checkpointing=True,
     )
 
     trainer = Trainer(

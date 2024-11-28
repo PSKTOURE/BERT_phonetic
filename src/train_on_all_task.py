@@ -206,14 +206,13 @@ def get_model_name(model_path):
 def fine_tune_on_all_tasks(
     num_iterations: int,
     model_path: str,
-    task_to_num_labels: dict,
     is_phonetic: bool = False,
-    phoneme: bool = False,
     all=False,
     tokenizer_path: str = None,
 ):
     start = time.time()
     results = defaultdict(lambda: defaultdict(list))
+    model_name = get_model_name(model_path)
 
     def _fine_tune_on_all_tasks(current_iteration: int = 1):
         one_iter_res = defaultdict(dict)
@@ -227,9 +226,7 @@ def fine_tune_on_all_tasks(
             tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
         data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
 
-        model_name = get_model_name(model_path)
         for task_name in task_to_num_labels.keys():
-            num_labels = task_to_num_labels[task_name]
             try:
                 model = AutoModelForSequenceClassification.from_pretrained(
                     model_path, num_labels=num_labels, ignore_mismatched_sizes=True
@@ -242,7 +239,7 @@ def fine_tune_on_all_tasks(
             print(f"################Training {model_name} on {task_name} with {num_labels}", end=" ")
             print(f"labels on iteration {current_iteration}/{num_iterations}################")
             print(f"Loading dataset {task_name} ...")
-            dataset = load_glue_dataset_from_dir(task_name, is_phonetic, phoneme)
+            dataset = load_glue_dataset_from_dir(task_name, is_phonetic)
             print("Sampling dataset ...")
             dataset = sample_dataset(dataset, task_name, all=all)
             print("Tokenizing dataset ...")
@@ -277,7 +274,6 @@ def fine_tune_on_all_tasks(
                 "std": np.std(results[key][metric]),
             }
 
-    model_name = get_model_name(model_path)
     file_path = f"{LOG_DIR}/{model_name}.tsv"
     with open(file_path, "w") as f:
         for task, metrics in results.items():
