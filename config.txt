@@ -1,7 +1,7 @@
 # Training model args:
 tm::dataset_path==DATASETS/phonetic_bookcorpus
 tm::tokenizer_path==tokenizers/tokenizer_phonetic_BPE
-tm::tokenizer_type==WordLevel
+tm::tokenizer_type==BPE
 tm::is_phonetic==TRUE
 tm::num_epochs==40
 tm::max_steps==-1
