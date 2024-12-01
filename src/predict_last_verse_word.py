@@ -26,7 +26,7 @@ num_processes = os.cpu_count() - 1
 
 class CustomDataCollator:
     def __init__(
-        self, tokenizer: PreTrainedTokenizerBase, padding=True, max_length=256
+        self, tokenizer: PreTrainedTokenizerBase, padding=True, max_length=128
     ):
         self.tokenizer = tokenizer
         self.mask_token_id = tokenizer.mask_token_id
@@ -37,7 +37,7 @@ class CustomDataCollator:
 
         sentence1 = [example["sentence1"] for example in examples]
         sentence2 = [example["sentence2"] for example in examples]
-        targets = [example["label"] for example in examples]
+        targets = [str(example["label"]) for example in examples]
 
         encoded_targets = self.tokenizer(
             targets,
@@ -69,6 +69,7 @@ class CustomDataCollator:
             "attention_mask": batch["attention_mask"],
             "labels": labels,
         }
+    
 
 
 def predict(
@@ -78,7 +79,7 @@ def predict(
     batch_size: int = 256,
     num_iterations: int = 5,
     k: int = 5,
-    log_file: str = "predict_last_word.tsv",
+    log_file: str = "rap_predict_last_word.tsv",
 ):
     
     def evaluate_rhyme(model, dataset, tokenizer):
@@ -170,16 +171,16 @@ def predict(
     results = defaultdict(list)
 
     for i in range(num_iterations):
-        score = one_iteration_training(i)
-        results["score"].append(score)
+        accuracy = one_iteration_training(i)
+        results["accuracy"].append(accuracy)
     
-    results["score"] = {
-        "mean": np.mean(results["score"]),
-        "std": np.std(results["score"]),
+    results["accuracy"] = {
+        "mean": np.mean(results["accuracy"]),
+        "std": np.std(results["accuracy"]),
     }
 
     print(f"Results for {model_name}: {results}")
     with open(f"{LOG_DIR}/{log_file}", "a") as f:
-        f.write(f"{model_name}\tscore\t{results['score']}\n")
+        f.write(f"{model_name}\taccuracy\t{results['accuracy']}\n")
 
-    
+
