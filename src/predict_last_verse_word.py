@@ -1,20 +1,14 @@
 import os
 import numpy as np
 import torch
-from datasets import load_from_disk, Dataset, DatasetDict
+from datasets import load_from_disk
 from transformers import (
     AutoTokenizer,
     AutoModelForMaskedLM,
-    DataCollatorForLanguageModeling,
     Trainer,
     TrainingArguments,
-    DataCollatorWithPadding,
 )
-import pandas as pd
-from sklearn.model_selection import train_test_split
 import epitran
-from functools import lru_cache
-from difflib import SequenceMatcher
 from transformers import PreTrainedTokenizerBase
 from collections import defaultdict
 from src.config import LOG_DIR
@@ -86,7 +80,6 @@ def predict(
         model = model.to("cuda")
         model.eval()
         res = []
-        batch_size = 256
 
         for i in range(0, len(dataset), batch_size):
             print(f"Processing batch {i}/{len(dataset)}...", end="\r")
@@ -103,11 +96,8 @@ def predict(
             count = 0
 
             for j in range(len(batch["sentence1"])):
-                # Identify the position of the masked token
                 masked_token_index = (inputs["input_ids"][j] == tokenizer.mask_token_id).nonzero(as_tuple=True)[0]
-                # Get the target
                 targets = labels[j, masked_token_index]
-                # Get the top-k predictions
                 top_k_indices = logits[j, masked_token_index].topk(k).indices.squeeze(0)
                 if i < 16 and j < 8:
                     print('targets:', targets, '-- top_k_indices:', top_k_indices)
@@ -120,10 +110,8 @@ def predict(
                 if ok:
                     count += 1
 
-            # Append accuracy for this batch
             res.append(count / len(batch["sentence1"]))
 
-        # Return the mean Top-k Accuracy
         return np.mean(res)
 
     def one_iteration_training(num_iter: int):
@@ -144,7 +132,6 @@ def predict(
             fp16=True,
         )
 
-        # Initialize the Trainer
         trainer = Trainer(
             model=model,
             args=training_args,

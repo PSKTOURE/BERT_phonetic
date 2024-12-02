@@ -20,7 +20,7 @@ for model_path, dataset_path in zip(model_paths, dataset_paths):
             model_path=model_path, 
             dataset_path=dataset_path, 
             num_iterations=3,
-            batch_size=16,
+            batch_size=32,
             num_epochs=3,
         )
     except Exception as e:
