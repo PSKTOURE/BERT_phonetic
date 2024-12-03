@@ -128,7 +128,6 @@ def setup_trainer(model, dataset, tokenizer, data_collator, model_name, task_nam
         report_to="tensorboard",
         fp16=True,
         seed=np.random.randint(1e6),
-        gradient_accumulation_steps=4,
     )
 
     # Define Trainer

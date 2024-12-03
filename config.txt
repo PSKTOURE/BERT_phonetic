@@ -4,7 +4,7 @@ tm::tokenizer_path==tokenizers/tokenizer_phonetic_BPE
 tm::tokenizer_type==BPE
 tm::is_phonetic==TRUE
 tm::num_epochs==40
-tm::max_steps==-1
+tm::max_steps==400000
 tm::fp16==TRUE
 tm::batch_size==320
 tm::lr==0.0001
