@@ -58,28 +58,17 @@ task_to_metric = {
     "wnli": ["accuracy"],
 }
 
-task_to_path = {
-    task: f"{DATASETS_DIR}/{GLUE_DIR}/{ORIGINAL_DIR}/{task}" for task in GLUE_TASKS
-}
+task_to_path = {task: f"{DATASETS_DIR}/{GLUE_DIR}/{ORIGINAL_DIR}/{task}" for task in GLUE_TASKS}
 task_to_path_phonetic = {
     task: f"{DATASETS_DIR}/{GLUE_DIR}/{PHONETIC_DIR}/{task}" for task in GLUE_TASKS
 }
 
 
-def download_glue_dataset(is_phonetic=False, phoneme=False):
+def download_glue_dataset(is_phonetic=False):
     for task in GLUE_TASKS:
         print(f"Downloading {task} dataset")
         dataset = load_dataset("glue", task)
-        if phoneme:
-            path = task_to_path_phonetic[task].split("/")
-            path[-2] = "phonetic_phonemes"
-            path = "/".join(path)
-            dataset = dataset.map(
-                lambda x: translate_task_to_phonetic(x, task, prefix=" "),
-                num_proc=num_processes,
-                batched=True,
-            )
-        elif is_phonetic:
+        if is_phonetic:
             path = task_to_path_phonetic[task]
             dataset = dataset.map(
                 lambda x: translate_task_to_phonetic(x, task),
@@ -155,9 +144,7 @@ def download_wikitext(is_phonetic=False) -> None:
     print(f"Downloading wikitext dataset: {dataset_name} ...")
     if dataset_name not in os.listdir(DATASETS_DIR):
         print("Downloading dataset...")
-        dataset = load_dataset(
-            "Salesforce/wikitext", dataset_name, num_proc=num_processes
-        )
+        dataset = load_dataset("Salesforce/wikitext", dataset_name, num_proc=num_processes)
     else:
         dataset = load_from_disk(f"{DATASETS_DIR}/{dataset_name}")
     if is_phonetic:
@@ -194,15 +181,11 @@ def download_bookcorpus(is_phonetic=False) -> None:
             trust_remote_code=True,
             num_proc=num_processes,
         )
-        wiki = wiki.remove_columns(
-            [col for col in wiki.column_names if col != "text"]
-        )
+        wiki = wiki.remove_columns([col for col in wiki.column_names if col != "text"])
         assert bookcorpus.features.type == wiki.features.type
         bookcorpus = concatenate_datasets([bookcorpus, wiki])
         bookcorpus = bookcorpus.train_test_split(test_size=1e-2)
-        bookcorpus = DatasetDict(
-            {"train": bookcorpus["train"], "validation": bookcorpus["test"]}
-        )
+        bookcorpus = DatasetDict({"train": bookcorpus["train"], "validation": bookcorpus["test"]})
 
         def chunked_text(examples):
             all = []
@@ -226,15 +209,11 @@ def download_bookcorpus(is_phonetic=False) -> None:
         bookcorpus = load_from_disk(f"{DATASETS_DIR}/bookcorpus")
 
     if is_phonetic:
-        bookcorpus = bookcorpus.map(
-            translate_to_phonetic, batched=True, num_proc=num_processes
-        )
+        bookcorpus = bookcorpus.map(translate_to_phonetic, batched=True, num_proc=num_processes)
     prefix = "phonetic_" if is_phonetic else ""
     bookcorpus_folder = f"{DATASETS_DIR}/{prefix}bookcorpus/"
     bookcorpus.save_to_disk(bookcorpus_folder, num_proc=num_processes)
-    print(
-        f"Saved bookcorpus dataset to {bookcorpus_folder} in {time.time() - start:.2f} seconds"
-    )
+    print(f"Saved bookcorpus dataset to {bookcorpus_folder} in {time.time() - start:.2f} seconds")
 
 
 def convert_to_phonetic(dataset_path):
@@ -255,22 +234,17 @@ def cached_xsampa(word):
 
 def xsampa(sentences, prefix=""):
     return [
-        " ".join(cached_xsampa(word) + prefix for word in re.findall(r"\w+|[^\s\w]+", sentence))
+        " ".join(cached_xsampa(word) for word in re.findall(r"\w+|[^\s\w]+", sentence))
         for sentence in sentences
     ]
 
-    # return [
-    #     " ".join(map(cached_xsampa, re.findall(r"\w+|[^\s\w]+", sentence)))
-    #     for sentence in sentences
-    # ]
 
-
-def translate_to_phonetic(example, prefix=""):
-    sentences = xsampa(example["text"], prefix)
+def translate_to_phonetic(example):
+    sentences = xsampa(example["text"])
     return {"text": sentences}
 
 
-def translate_task_to_phonetic(example, task_name, prefix=""):
+def translate_task_to_phonetic(example, task_name):
     fields = task_to_fields.get(task_name, None)
 
     if not fields:
@@ -278,11 +252,11 @@ def translate_task_to_phonetic(example, task_name, prefix=""):
 
     if len(fields) == 1:
         # sst2 case
-        example[fields[0]] = xsampa(example[fields[0]], prefix)
+        example[fields[0]] = xsampa(example[fields[0]])
     else:
         # the rest hopefully
-        example[fields[0]] = xsampa(example[fields[0]], prefix)
-        example[fields[1]] = xsampa(example[fields[1]], prefix)
+        example[fields[0]] = xsampa(example[fields[0]])
+        example[fields[1]] = xsampa(example[fields[1]])
 
     return example
 

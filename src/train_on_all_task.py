@@ -15,8 +15,7 @@ from transformers import (
     DataCollatorWithPadding,
 )
 from transformers import DataCollatorWithPadding
-from datasets import load_from_disk
-from src.config import MAX_LENGTH, LOG_DIR, DEFAULT_MODEL
+from src.config import MAX_LENGTH, LOG_DIR, DEFAULT_MODEL, BATCH_SIZE
 from src.utils import (
     task_to_fields,
     task_to_num_labels,
@@ -117,7 +116,7 @@ def setup_trainer(model, dataset, tokenizer, data_collator, model_name, task_nam
         output_dir=f"/tmp/{model_name}",
         overwrite_output_dir=True,
         eval_strategy="no",
-        per_device_train_batch_size=512,
+        per_device_train_batch_size=BATCH_SIZE,
         per_device_eval_batch_size=32,
         save_strategy="no",
         dataloader_num_workers=num_processes,
@@ -129,7 +128,7 @@ def setup_trainer(model, dataset, tokenizer, data_collator, model_name, task_nam
         report_to="tensorboard",
         fp16=True,
         seed=np.random.randint(1e6),
-        #gradient_accumulation_steps=4,
+        gradient_accumulation_steps=4,
     )
 
     # Define Trainer

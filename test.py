@@ -17,12 +17,11 @@ dataset_paths = [f"{DATASETS_DIR}/rap/rap_ds_hf"] * 2 + [f"{DATASETS_DIR}/rap/ph
 for model_path, dataset_path in zip(model_paths, dataset_paths):
     try:
         predict(
-            model_path=model_path, 
-            dataset_path=dataset_path, 
+            model_path=model_path,
+            dataset_path=dataset_path,
             num_iterations=3,
             batch_size=32,
             num_epochs=3,
         )
     except Exception as e:
         print(f"Error with model {model_path} and dataset {dataset_path}: {e}")
-

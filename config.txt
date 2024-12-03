@@ -11,14 +11,14 @@ tm::lr==0.0001
 tm::max_length==128
 tm::log_dir==logs
 tm::model_dir==models
-tm::percent==0.1
+tm::percent==0.2
 
 # Fine_tuning args:
 ft::model_path==psktoure/BERT_WordLevel_phonetic_bookcorpus_0.1
 ft::tokenizer_path==psktoure/BERT_WordLevel_phonetic_bookcorpus_0.1
 ft::is_phonetic==TRUE
 ft::phoneme==FALSE
-ft::num_iterations==5
+ft::num_iterations==3
 ft::all==TRUE
 
 # Training tokenizer args:

@@ -63,9 +63,8 @@ default_args = {
     "ft::all": "FALSE",
     "ft::num_iterations": "1",
     "ft::is_phonetic": "TRUE",
-    "ft::phoneme": "FALSE",
     # Tokenizer training default arguments
-    "tt::dataset_path": f"{DATASETS_DIR}/phonetic_cleaned_bookcorpus",
+    "tt::dataset_path": f"{DATASETS_DIR}/phonetic_bookcorpus",
     "tt::tokenizer_type": "BPE",
     "tt::is_phonetic": "TRUE",
 }
@@ -85,7 +84,6 @@ except FileNotFoundError:
 # Convert string arguments to appropriate types
 config_args["ft::is_phonetic"] = config_args["ft::is_phonetic"].upper() == "TRUE"
 config_args["tt::is_phonetic"] = config_args["tt::is_phonetic"].upper() == "TRUE"
-config_args["ft::phoneme"] = config_args["ft::phoneme"].upper() == "TRUE"
 config_args["tm::fp16"] = config_args["tm::fp16"].upper() == "TRUE"
 config_args["ft::all"] = config_args["ft::all"].upper() == "TRUE"
 
