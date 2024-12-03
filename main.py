@@ -6,7 +6,6 @@ from src.utils import (
     download_wikitext,
     download_glue_dataset,
     timeit,
-    task_to_num_labels,
 )
 from src.bert_wikitext_train import train
 from src.train_on_all_task import fine_tune_on_all_tasks
@@ -126,8 +125,6 @@ elif args.fine_tune:
     fine_tune_on_all_tasks(
         model_path=config_args["ft::model_path"],
         is_phonetic=config_args["ft::is_phonetic"],
-        phoneme=config_args["ft::phoneme"],
-        task_to_num_labels=task_to_num_labels,
         all=config_args["ft::all"],
         num_iterations=int(config_args["ft::num_iterations"]),
         tokenizer_path=config_args["ft::tokenizer_path"],

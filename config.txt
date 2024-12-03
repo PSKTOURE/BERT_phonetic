@@ -14,8 +14,8 @@ tm::model_dir==models
 tm::percent==0.1
 
 # Fine_tuning args:
-ft::model_path==psktoure/BERT_WordLevel_phonetic_WordLevel_wikitext
-ft::tokenizer_path==psktoure/BERT_WordLevel_phonetic_WordLevel_wikitext
+ft::model_path==psktoure/BERT_WordLevel_phonetic_bookcorpus_0.1
+ft::tokenizer_path==psktoure/BERT_WordLevel_phonetic_bookcorpus_0.1
 ft::is_phonetic==TRUE
 ft::phoneme==FALSE
 ft::num_iterations==5

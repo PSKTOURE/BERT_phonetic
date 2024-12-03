@@ -117,12 +117,11 @@ def setup_trainer(model, dataset, tokenizer, data_collator, model_name, task_nam
         output_dir=f"/tmp/{model_name}",
         overwrite_output_dir=True,
         eval_strategy="no",
-        per_device_train_batch_size=256,
+        per_device_train_batch_size=512,
         per_device_eval_batch_size=32,
         save_strategy="no",
-        # save_total_limit=1,
-        # load_best_model_at_end=True,
-        learning_rate=5e-5,  # default 5e-5
+        dataloader_num_workers=num_processes,
+        learning_rate=5e-5,
         num_train_epochs=3,
         weight_decay=3e-5,
         logging_dir=f"{LOG_DIR}/tensorboard_{model_name}",
@@ -130,8 +129,7 @@ def setup_trainer(model, dataset, tokenizer, data_collator, model_name, task_nam
         report_to="tensorboard",
         fp16=True,
         seed=np.random.randint(1e6),
-        gradient_accumulation_steps=4,
-        gradient_checkpointing=True,
+        #gradient_accumulation_steps=4,
     )
 
     # Define Trainer
@@ -216,8 +214,6 @@ def fine_tune_on_all_tasks(
 
     def _fine_tune_on_all_tasks(current_iteration: int = 1):
         one_iter_res = defaultdict(dict)
-        task_name = list(task_to_fields.keys())[0]
-        num_labels = task_to_num_labels[task_name]
 
         try:
             tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
@@ -226,7 +222,7 @@ def fine_tune_on_all_tasks(
             tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
         data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
 
-        for task_name in task_to_num_labels.keys():
+        for task_name, num_labels in task_to_num_labels.items():
             try:
                 model = AutoModelForSequenceClassification.from_pretrained(
                     model_path, num_labels=num_labels, ignore_mismatched_sizes=True
