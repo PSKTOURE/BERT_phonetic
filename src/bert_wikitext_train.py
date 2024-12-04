@@ -6,8 +6,7 @@ from transformers import (
     TrainingArguments,
 )
 
-from transformers import BertConfig, BertForMaskedLM
-from transformers import DataCollatorForLanguageModeling
+from transformers import BertConfig, BertForMaskedLM, DataCollatorForLanguageModeling
 from src.config import MAX_LENGTH, MODEL_DIR, LOG_DIR, BATCH_SIZE
 from src.utils import num_processes
 from src.train_tokenizer import load_tokenizer
@@ -66,7 +65,6 @@ def train(
     tokenizer_type: str = "WordPiece",
     log_dir: str = LOG_DIR,
     model_dir: str = MODEL_DIR,
-    percent: float = 0.1,
 ) -> Trainer:
     dataset_name = os.path.basename(dataset_path)
     print(
@@ -81,11 +79,7 @@ def train(
         dataset = load_from_disk(dataset_path)
     except:
         raise ValueError(f"Dataset {dataset_path} not found")
-    train_len = len(dataset["train"])
-    val_len = len(dataset["validation"])
-    dataset["train"] = dataset["train"].select(range(int(train_len * percent)))
-    dataset["validation"] = dataset["validation"].select(range(int(val_len * percent)))
-    print(dataset)
+
     dataset_tokenized = preprocess_dataset(dataset, tokenizer, max_length=max_length)
 
     config = setup_bert_config(vocab_size=vocab_size)
@@ -98,7 +92,7 @@ def train(
         mlm_probability=0.15,
     )
     hub_token = os.getenv("HF_TOKEN")
-    model_name = f"BERT_{tokenizer_type}_{dataset_name}_{percent}"
+    model_name = f"BERT_{tokenizer_type}_{dataset_name}"
     training_args = TrainingArguments(
         output_dir=f"{model_dir}/{model_name}",
         overwrite_output_dir=True,
@@ -126,7 +120,7 @@ def train(
         fp16=fp16,
         eval_strategy="steps",
         eval_steps=2_000,
-        gradient_accumulation_steps=4,
+        #gradient_accumulation_steps=4,
         hub_token=hub_token,
         hub_model_id=model_name,
         push_to_hub=hub_token is not None,

@@ -1,6 +1,6 @@
 import os
 import shutil
-from datasets import load_from_disk
+from datasets import load_from_disk, concatenate_datasets
 from tokenizers import Tokenizer
 from tokenizers.models import WordLevel, BPE, WordPiece
 from tokenizers.pre_tokenizers import Whitespace
@@ -11,8 +11,10 @@ from tokenizers.normalizers import NFD, Lowercase, StripAccents
 from transformers import PreTrainedTokenizerFast
 from src.config import DATASETS_DIR, TOKENIZERS_DIR, BERT_DEFAULT_VOCAB_SIZE
 
+
 def get_training_corpus(dataset):
-    dataset = dataset["train"]
+    splits = list(dataset.keys())
+    dataset = concatenate_datasets([dataset[split] for split in splits])
     for i in range(0, len(dataset), 1000):
         samples = dataset[i : i + 1000]
         yield samples["text"]
@@ -26,7 +28,7 @@ def train_tokenizer(
         print(dataset)
     except:
         raise ValueError(f"Dataset {dataset_path} not found")
-    
+
     if not os.path.exists(TOKENIZERS_DIR):
         os.makedirs(TOKENIZERS_DIR)
 
@@ -47,11 +49,8 @@ def train_tokenizer(
         raise ValueError(f"Invalid tokenizer type: {tokenizer_type}")
     tokenizer = Tokenizer(tokenizer_dict[tokenizer_type](unk_token="[UNK]"))
 
-    if not is_phonetic:
-        tokenizer.normalizer = normalizers.Sequence(
-            [NFD(), Lowercase(), StripAccents()]
-        )
-        
+    tokenizer.normalizer = normalizers.Sequence([NFD(), Lowercase(), StripAccents()])
+
     tokenizer.pre_tokenizer = Whitespace()
     tokenizer.post_processor = TemplateProcessing(
         single="[CLS] $A [SEP]",
@@ -61,7 +60,7 @@ def train_tokenizer(
             ("[SEP]", 2),
         ],
     )
-    
+
     trainer = tokenizer_trainers[tokenizer_type](
         vocab_size=BERT_DEFAULT_VOCAB_SIZE,
         special_tokens=["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"],

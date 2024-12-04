@@ -66,12 +66,13 @@ class CustomDataCollator:
     
 
 
-def predict(
+def predict_word(
     dataset_path: str,
     model_path: str,
     num_epochs: int = 3,
     batch_size: int = 256,
     num_iterations: int = 5,
+    max_length: int = 128,
     k: int = 5,
     log_file: str = "rap_predict_last_word.tsv",
 ):
@@ -125,7 +126,6 @@ def predict(
             per_device_train_batch_size=batch_size,
             per_device_eval_batch_size=batch_size,
             num_train_epochs=num_epochs,
-            weight_decay=0.01,
             logging_strategy='no',
             remove_unused_columns=False,
             seed=np.random.randint(1e6),
@@ -151,7 +151,7 @@ def predict(
         raise ValueError(f"Dataset {dataset_path} not found")
     
     tokenizer = AutoTokenizer.from_pretrained(model_path)
-    data_collator = CustomDataCollator(tokenizer)
+    data_collator = CustomDataCollator(tokenizer, max_length=max_length)
     
     model_name = model_path.split("/")[-1]
     

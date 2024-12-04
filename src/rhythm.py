@@ -42,7 +42,7 @@ def predict_rhythm(
     model_path: str,
     dataset_path: str,
     batch_size: int = 256,
-    max_length: int = 256,
+    max_length: int = 128,
     num_epochs: int = 3,
     num_iterations: int = 5,
     log_file: str = "rhythm.tsv",

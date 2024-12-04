@@ -1,14 +1,14 @@
 # Training model args:
-tm::dataset_path==DATASETS/phonetic_bookcorpus
-tm::tokenizer_path==tokenizers/tokenizer_phonetic_BPE
-tm::tokenizer_type==BPE
+tm::dataset_path==DATASETS/phonetic_wikitext
+tm::tokenizer_path==tokenizers/tokenizer_phonetic_WordPiece
+tm::tokenizer_type==WordPiece
 tm::is_phonetic==TRUE
 tm::num_epochs==40
 tm::max_steps==400000
 tm::fp16==TRUE
 tm::batch_size==320
 tm::lr==0.0001
-tm::max_length==128
+tm::max_length==256
 tm::log_dir==logs
 tm::model_dir==models
 tm::percent==0.2
@@ -22,6 +22,6 @@ ft::num_iterations==3
 ft::all==TRUE
 
 # Training tokenizer args:
-tt::dataset_path==DATASETS/phonetic_bookcorpus
-tt::tokenizer_type==BPE
+tt::dataset_path==DATASETS/phonetic_wikitext
+tt::tokenizer_type==WordPiece
 tt::is_phonetic==TRUE

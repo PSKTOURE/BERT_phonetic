@@ -137,32 +137,44 @@ def timeit(func):
     return wrapper
 
 
-# Download the 1.8M rows of wikitext-v3 :o
+# Download wikitext-v3
 def download_wikitext(is_phonetic=False) -> None:
     start = time.time()
     dataset_name = "wikitext-103-raw-v1"
     print(f"Downloading wikitext dataset: {dataset_name} ...")
+
     if dataset_name not in os.listdir(DATASETS_DIR):
         print("Downloading dataset...")
         dataset = load_dataset("Salesforce/wikitext", dataset_name, num_proc=num_processes)
     else:
         dataset = load_from_disk(f"{DATASETS_DIR}/{dataset_name}")
+
     if is_phonetic:
         print("Translating to phonetic...")
         dataset = (
-            dataset.map(clean_text, num_proc=num_processes, batched=True)
+            dataset.map(lambda x: chunked_text(x, chunk_size=200), num_proc=num_processes, batched=True)
+            .map(clean_text, num_proc=num_processes, batched=True)
             .map(remove_exact_duplicates, num_proc=num_processes, batched=True)
             .map(filter_by_language, num_proc=num_processes, batched=True)
             .map(translate_to_phonetic, num_proc=num_processes, batched=True)
             .filter(lambda x: len(x["text"]) > 0, num_proc=num_processes)
         )
         dataset_name = f"phonetic_{dataset_name}"
+
     wiki_dir = f"{DATASETS_DIR}/{dataset_name}"
     dataset.save_to_disk(wiki_dir, num_proc=num_processes)
     print(dataset)
     elapsed_time = time.time() - start
     print(f"Downloaded {dataset_name} dataset in {elapsed_time:.2f} seconds")
     print(f"Saved dataset to {wiki_dir}")
+
+
+def chunked_text(examples, chunk_size=100):
+    all = []
+    for sentence in examples["text"]:
+        words = re.findall(r"\w+|[^\s\w]+", sentence)
+        all += [" ".join(words[i : i + chunk_size]) for i in range(0, len(words), chunk_size)]
+    return {"text": all}
 
 
 def download_bookcorpus(is_phonetic=False) -> None:
@@ -187,16 +199,9 @@ def download_bookcorpus(is_phonetic=False) -> None:
         bookcorpus = bookcorpus.train_test_split(test_size=1e-2)
         bookcorpus = DatasetDict({"train": bookcorpus["train"], "validation": bookcorpus["test"]})
 
-        def chunked_text(examples):
-            all = []
-            for sentence in examples["text"]:
-                words = re.findall(r"\w+|[^\s\w]+", sentence)
-                all += [" ".join(words[i : i + 100]) for i in range(0, len(words), 100)]
-            return {"text": all}
-
         bookcorpus = (
             bookcorpus.map(
-                chunked_text,
+                lambda x: chunked_text(x, chunk_size=100),
                 batched=True,
                 num_proc=num_processes,
             )
@@ -232,7 +237,7 @@ def cached_xsampa(word):
     return "".join(epi.xsampa_list(word))
 
 
-def xsampa(sentences, prefix=""):
+def xsampa(sentences):
     return [
         " ".join(cached_xsampa(word) for word in re.findall(r"\w+|[^\s\w]+", sentence))
         for sentence in sentences
@@ -240,8 +245,8 @@ def xsampa(sentences, prefix=""):
 
 
 def translate_to_phonetic(example):
-    sentences = xsampa(example["text"])
-    return {"text": sentences}
+    phonetic_sentences = xsampa(example["text"])
+    return {"text": phonetic_sentences, "original_text": example["text"]}
 
 
 def translate_task_to_phonetic(example, task_name):
