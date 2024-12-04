@@ -38,7 +38,7 @@ class CustomTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-def fine_tune(
+def predict_rhythm(
     model_path: str,
     dataset_path: str,
     batch_size: int = 256,
@@ -63,7 +63,7 @@ def fine_tune(
     data_collator = DataCollatorWithPadding(tokenizer)
     model_name = model_path.split("/")[-1]
 
-    def _fine_tune(num_iter: int):
+    def _predict_rhythm(num_iter: int):
         print(f"Fine-tuning {model_name} for {num_iter + 1}/{num_iterations} iteration")
 
         model = AutoModelForSequenceClassification.from_pretrained(model_path, num_labels=4, ignore_mismatched_sizes=True)
@@ -93,18 +93,33 @@ def fine_tune(
         predictions = trainer.predict(dataset_tokenized["test"])
         preds, labels = predictions.predictions, predictions.label_ids
         preds = np.argmax(preds, axis=-1)
-        accuracy = MulticlassAccuracy(num_classes=4, average="macro")
-        acc = accuracy(torch.tensor(preds), torch.tensor(labels))
-        return acc
+
+        acc_macro = MulticlassAccuracy(num_classes=4, average="macro")
+        acc_micro = MulticlassAccuracy(num_classes=4, average="micro")
+        acc1 = acc_macro(torch.tensor(preds), torch.tensor(labels))
+        acc2 = acc_micro(torch.tensor(preds), torch.tensor(labels))
+        return [acc1, acc2]
 
     res = defaultdict(list)
     for i in range(num_iterations):
-        acc = _fine_tune(i)
+        acc = _predict_rhythm(i)
         res["accuracy"].append(acc)
     
-    res["accuracy"] = {
-        "mean": np.mean(res["accuracy"]),
-        "std": np.std(res["accuracy"]),
+    res["accuracy"] = np.array(res["accuracy"])
+    means = np.mean(res["accuracy"], axis=0)
+    stds = np.std(res["accuracy"], axis=0)
+
+    res = {
+        "accuracy": {
+            "macro": {
+                "mean": means[0].item(),
+                "std": stds[0].item(),
+            },
+            "micro": {
+                "mean": means[1].item(),
+                "std": stds[1].item(),
+            },
+        }
     }
 
     with open(f"{LOG_DIR}/{log_file}", "a") as f:
