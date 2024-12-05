@@ -8,6 +8,7 @@ from src.utils import (
     timeit,
 )
 from src.bert_wikitext_train import train
+from src.teacher_student_training import teacher_student_training
 from src.train_on_all_task import fine_tune_on_all_tasks
 from src.train_tokenizer import train_tokenizer
 
@@ -35,11 +36,10 @@ parser.add_argument(
 )
 parser.add_argument("--train", action="store_true", help="Launch training process")
 parser.add_argument(
-    "--fine_tune", action="store_true", help="Launch fine-tuning process"
+    "--distillation_training", action="store_true", help="Launch distillation training process"
 )
-parser.add_argument(
-    "--train_tokenizer", action="store_true", help="Launch tokenizer training"
-)
+parser.add_argument("--fine_tune", action="store_true", help="Launch fine-tuning process")
+parser.add_argument("--train_tokenizer", action="store_true", help="Launch tokenizer training")
 args = parser.parse_args()
 
 # Load default config arguments from config.txt
@@ -54,6 +54,7 @@ default_args = {
     "tm::batch_size": "256",
     "tm::lr": "0.0001",
     "tm::max_length": "128",
+    "tm::distillation_lambda": "0.1",
     "tm::log_dir": "logs",
     "tm::model_dir": "models",
     "tm::percent": "0.1",
@@ -118,6 +119,23 @@ elif args.train:
         model_dir=config_args["tm::model_dir"],
         percent=float(config_args["tm::percent"]),
     )
+
+elif args.distillation_training:
+        # Launch distillation training process
+        timeit(teacher_student_training)(
+            dataset_path=config_args["tm::dataset_path"],
+            tokenizer_path=config_args["tm::tokenizer_path"],
+            num_epochs=int(config_args["tm::num_epochs"]),
+            max_steps=int(config_args["tm::max_steps"]),
+            batch_size=int(config_args["tm::batch_size"]),
+            lr=float(config_args["tm::lr"]),
+            max_length=int(config_args["tm::max_length"]),
+            distillation_lambda=float(config_args["tm::distillation_lambda"]),
+            fp16=config_args["tm::fp16"],
+            tokenizer_type=config_args["tm::tokenizer_type"],
+            log_dir=config_args["tm::log_dir"],
+            model_dir=config_args["tm::model_dir"],
+        )
 
 elif args.fine_tune:
     fine_tune_on_all_tasks(

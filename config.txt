@@ -4,9 +4,10 @@ tm::tokenizer_path==tokenizers/tokenizer_phonetic_WordPiece
 tm::tokenizer_type==WordPiece
 tm::is_phonetic==TRUE
 tm::num_epochs==40
-tm::max_steps==400000
+tm::max_steps==-1
 tm::fp16==TRUE
-tm::batch_size==320
+tm::batch_size==128
+tm::distillation_lambda==0.1
 tm::lr==0.0001
 tm::max_length==256
 tm::log_dir==logs
