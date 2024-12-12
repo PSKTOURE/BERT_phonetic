@@ -117,7 +117,6 @@ elif args.train:
         max_length=int(config_args["tm::max_length"]),
         log_dir=config_args["tm::log_dir"],
         model_dir=config_args["tm::model_dir"],
-        percent=float(config_args["tm::percent"]),
     )
 
 elif args.distillation_training:

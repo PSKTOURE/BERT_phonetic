@@ -1,15 +1,15 @@
 # Training model args:
-tm::dataset_path==DATASETS/phonetic_wikitext
-tm::tokenizer_path==tokenizers/tokenizer_phonetic_WordPiece
+tm::dataset_path==DATASETS/wikitext
+tm::tokenizer_path==tokenizers/tokenizer_WordPiece
 tm::tokenizer_type==WordPiece
-tm::is_phonetic==TRUE
+tm::is_phonetic==FALSE
 tm::num_epochs==40
-tm::max_steps==-1
+tm::max_steps==400000
 tm::fp16==TRUE
-tm::batch_size==128
+tm::batch_size==256
 tm::distillation_lambda==0.1
 tm::lr==0.0001
-tm::max_length==256
+tm::max_length==128
 tm::log_dir==logs
 tm::model_dir==models
 tm::percent==0.2
@@ -23,6 +23,6 @@ ft::num_iterations==3
 ft::all==TRUE
 
 # Training tokenizer args:
-tt::dataset_path==DATASETS/phonetic_wikitext
+tt::dataset_path==DATASETS/wikitext
 tt::tokenizer_type==WordPiece
-tt::is_phonetic==TRUE
+tt::is_phonetic==FALSE

@@ -149,17 +149,23 @@ def download_wikitext(is_phonetic=False) -> None:
     else:
         dataset = load_from_disk(f"{DATASETS_DIR}/{dataset_name}")
 
+    dataset = (
+        dataset.map(lambda x: chunked_text(x, chunk_size=100), num_proc=num_processes, batched=True)
+        .map(clean_text, num_proc=num_processes, batched=True)
+        .map(remove_exact_duplicates, num_proc=num_processes, batched=True)
+        .map(filter_by_language, num_proc=num_processes, batched=True)
+        .filter(lambda x: len(x["text"]) > 0, num_proc=num_processes)
+        .flatten_indices(num_proc=num_processes)
+    )
+    dataset_name = f"wikitext"
+
     if is_phonetic:
-        print("Translating to phonetic...")
-        dataset = (
-            dataset.map(lambda x: chunked_text(x, chunk_size=200), num_proc=num_processes, batched=True)
-            .map(clean_text, num_proc=num_processes, batched=True)
-            .map(remove_exact_duplicates, num_proc=num_processes, batched=True)
-            .map(filter_by_language, num_proc=num_processes, batched=True)
-            .map(translate_to_phonetic, num_proc=num_processes, batched=True)
-            .filter(lambda x: len(x["text"]) > 0, num_proc=num_processes)
+        dataset = dataset.map(translate_to_phonetic, num_proc=num_processes, batched=True).filter(
+            lambda x: len(x["text"]) > 0, num_proc=num_processes
         )
-        dataset_name = f"phonetic_{dataset_name}"
+        print("Translating to phonetic...")
+
+        dataset_name = f"phonetic_wikitext"
 
     wiki_dir = f"{DATASETS_DIR}/{dataset_name}"
     dataset.save_to_disk(wiki_dir, num_proc=num_processes)

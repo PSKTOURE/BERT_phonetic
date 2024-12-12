@@ -103,36 +103,52 @@ def teacher_student_training(
         tokenizer=student_tokenizer, mlm=True, mlm_probability=0.15
     )
 
-    def custom_data_collator(batch):
-        # Extract teacher and student texts
-        original_texts = [example["original_text"] for example in batch]
-        phonetic_texts = [example["text"] for example in batch]
+    def tokenize_dataset(dataset, teacher_tokenizer, student_tokenizer, max_length=128):
+        def tokenize_function(examples):
+            teacher_inputs = teacher_tokenizer(
+                examples["original_text"],
+                padding="max_length",
+                truncation=True,
+                max_length=max_length,
+            )
+            student_inputs = student_tokenizer(
+                examples["text"],
+                padding="max_length",
+                truncation=True,
+                max_length=max_length,
+            )
+            return {
+                "teacher_input_ids": teacher_inputs["input_ids"],
+                "teacher_attention_mask": teacher_inputs["attention_mask"],
+                "student_input_ids": student_inputs["input_ids"],
+                "student_attention_mask": student_inputs["attention_mask"],
+            }
 
-        # Tokenize teacher inputs
-        teacher_inputs = teacher_tokenizer(
-            original_texts, padding=True, truncation=True, max_length=max_length, return_tensors="pt"
-        )
-
-        # Tokenize student inputs
-        student_inputs = student_tokenizer(
-            phonetic_texts, padding=True, truncation=True, max_length=max_length, return_tensors="pt"
-        )
-
+        return dataset.map(tokenize_function, batched=True, num_proc=num_processes)
+    
+    def data_collator(batch):
+        # Extract pre-tokenized data
+        teacher_input_ids = torch.tensor([example["teacher_input_ids"] for example in batch])
+        teacher_attention_mask = torch.tensor([example["teacher_attention_mask"] for example in batch])
+        student_input_ids = torch.tensor([example["student_input_ids"] for example in batch])
+        student_attention_mask = torch.tensor([example["student_attention_mask"] for example in batch])
+        
         # Apply MLM masking to student inputs
         student_inputs = mlm_data_collator(
-            [{"input_ids": input_id} for input_id in student_inputs["input_ids"]]
+            [{"input_ids": input_id} for input_id in student_input_ids]
         )
-
+        
         return {
-            "teacher_input_ids": teacher_inputs["input_ids"],
-            "teacher_attention_mask": teacher_inputs["attention_mask"],
+            "teacher_input_ids": teacher_input_ids,
+            "teacher_attention_mask": teacher_attention_mask,
             "student_input_ids": student_inputs["input_ids"],
-            "student_attention_mask": student_inputs["attention_mask"],
+            "student_attention_mask": student_attention_mask,
             "labels": student_inputs["labels"],  # MLM labels
         }
 
     # Load dataset
     dataset = load_from_disk(dataset_path)
+    tokenized_dataset = tokenize_dataset(dataset, teacher_tokenizer, student_tokenizer, max_length=max_length)
     dataset_name = os.path.basename(dataset_path)
 
     hub_token = os.getenv("HF_TOKEN")
@@ -166,7 +182,6 @@ def teacher_student_training(
         fp16=fp16,
         eval_strategy="steps",
         eval_steps=2_000,
-        gradient_accumulation_steps=4,
         hub_token=hub_token,
         hub_model_id=model_name,
         push_to_hub=hub_token is not None,
@@ -178,9 +193,9 @@ def teacher_student_training(
         distillation_lambda=distillation_lambda,
         model_init=lambda: student,
         args=training_args,
-        data_collator=custom_data_collator,
-        train_dataset=dataset["train"],
-        eval_dataset=dataset["validation"],
+        data_collator=data_collator,
+        train_dataset=tokenized_dataset["train"],
+        eval_dataset=tokenized_dataset["validation"],
     )
 
     print("Training ...")

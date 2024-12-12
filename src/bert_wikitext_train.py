@@ -85,6 +85,7 @@ def train(
     config = setup_bert_config(vocab_size=vocab_size)
     model = BertForMaskedLM(config)
     model.resize_token_embeddings(len(tokenizer))
+    print("len_tokenizer", len(tokenizer))
 
     data_collator_mlm = DataCollatorForLanguageModeling(
         tokenizer=tokenizer,
@@ -120,7 +121,6 @@ def train(
         fp16=fp16,
         eval_strategy="steps",
         eval_steps=2_000,
-        #gradient_accumulation_steps=4,
         hub_token=hub_token,
         hub_model_id=model_name,
         push_to_hub=hub_token is not None,

@@ -2,7 +2,7 @@ import os
 
 # Configuration file for the project
 MAX_LENGTH = 128
-BATCH_SIZE = 512
+BATCH_SIZE = 300
 HOME = os.environ["HOME"]
 DATASETS_DIR = "DATASETS"
 MODEL_DIR = "models"
