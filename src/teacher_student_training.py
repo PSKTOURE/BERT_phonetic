@@ -61,6 +61,7 @@ def teacher_student_training(
     teacher = AutoModel.from_pretrained(teacher_model_name)
     config = setup_bert_config(vocab_size=student_tokenizer.vocab_size)
     student = BertForMaskedLM(config=config)
+    
     teacher.to(device)
     student.to(device)
 
@@ -194,6 +195,7 @@ def teacher_student_training(
         model_init=lambda: student,
         args=training_args,
         data_collator=data_collator,
+        tokenizer=student_tokenizer,
         train_dataset=tokenized_dataset["train"],
         eval_dataset=tokenized_dataset["validation"],
     )

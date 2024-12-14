@@ -25,7 +25,7 @@ from src.utils import (
 )
 
 
-def sample_dataset(dataset, task_name, train_sample=2000, val_sample=200, all=False):
+def sample_dataset(dataset, task_name, train_sample=2000, val_sample=8, all=False):
     if "test" in dataset:
         del dataset["test"]
     if all:
@@ -55,7 +55,7 @@ def sample_dataset(dataset, task_name, train_sample=2000, val_sample=200, all=Fa
     return dataset
 
 
-def tokenize_function(examples, tokenizer, task_name):
+def tokenize_function(examples, tokenizer, task_name, max_length=MAX_LENGTH):
     fields = task_to_fields.get(task_name, None)
 
     if not fields:
@@ -66,7 +66,7 @@ def tokenize_function(examples, tokenizer, task_name):
     if len(fields) == 1:
         # sst2 case
         return tokenizer(
-            examples[fields[0]], truncation=True, max_length=MAX_LENGTH, padding=False
+            examples[fields[0]], truncation=True, max_length=max_length, padding=False
         )
     else:
         # the rest hopefully
@@ -74,7 +74,7 @@ def tokenize_function(examples, tokenizer, task_name):
             examples[fields[0]],
             examples[fields[1]],
             truncation=True,
-            max_length=MAX_LENGTH,
+            max_length=max_length,
             padding=False,
         )
 
@@ -163,14 +163,14 @@ def compute_metrics(trainer, dataset, task_name):
         )
 
         metric = evaluate.load(task_to_metric[task_name][0])
-        predictions = np.argmax(matched_preds, axis=1)
+        preds = np.argmax(matched_preds, axis=1)
         matched_result = metric.compute(
-            predictions=predictions, references=matched_labels
+            predictions=preds, references=matched_labels
         )
 
-        predictions = np.argmax(mismatched_preds, axis=1)
+        preds = np.argmax(mismatched_preds, axis=1)
         mismatched_result = metric.compute(
-            predictions=predictions, references=mismatched_labels
+            predictions=preds, references=mismatched_labels
         )
 
         return {
@@ -179,8 +179,10 @@ def compute_metrics(trainer, dataset, task_name):
         }
 
     # Regular compute metrics for other tasks
-    predictions = trainer.predict(dataset["validation"])
-    preds, labels = predictions.predictions, predictions.label_ids
+    outputs = trainer.predict(dataset["validation"])
+    preds = outputs.predictions
+    labels = outputs.label_ids
+
     metric = evaluate.load(task_to_metric[task_name][0])
     if task_name == "stsb":
         result = metric.compute(predictions=preds, references=labels)
@@ -204,7 +206,6 @@ def fine_tune_on_all_tasks(
     model_path: str,
     is_phonetic: bool = False,
     all=False,
-    tokenizer_path: str = None,
 ):
     start = time.time()
     results = defaultdict(lambda: defaultdict(list))
@@ -213,17 +214,15 @@ def fine_tune_on_all_tasks(
     def _fine_tune_on_all_tasks(current_iteration: int = 1):
         one_iter_res = defaultdict(dict)
 
-        try:
-            tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-        except EnvironmentError as e:
-            print("Tokenizer not found, using default tokenizer.")
-            tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
+        tokenizer = AutoTokenizer.from_pretrained(model_path)
         data_collator = DataCollatorWithPadding(tokenizer=tokenizer, padding=True)
 
         for task_name, num_labels in task_to_num_labels.items():
             try:
                 model = AutoModelForSequenceClassification.from_pretrained(
-                    model_path, num_labels=num_labels, ignore_mismatched_sizes=True
+                    model_path, num_labels=num_labels, 
+                    ignore_mismatched_sizes=True,
+                    output_hidden_states=False,
                 )
             except EnvironmentError as e:
                 print(f"Error loading model: {e}")

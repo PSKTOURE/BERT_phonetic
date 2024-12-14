@@ -74,7 +74,10 @@ def fine_tune_on_task(
 
     def _fine_tune_on_task(iteration):
         model = AutoModelForSequenceClassification.from_pretrained(
-            model_path, num_labels=num_labels, ignore_mismatched_sizes=True
+            model_path, 
+            num_labels=num_labels, 
+            ignore_mismatched_sizes=True,
+            output_hidden_states=False,
         )
 
         training_args = TrainingArguments(
@@ -102,8 +105,8 @@ def fine_tune_on_task(
             f"##################{model_name} on Iteration {iteration+1}/{num_iterations}##################"
         )
         trainer.train()
-        predictions = trainer.predict(encoded_dataset["test"])
-        preds, labels = predictions.predictions, predictions.label_ids
+        outputs = trainer.predict(encoded_dataset["test"])
+        preds, labels = outputs.predictions, outputs.label_ids
         if use_roc:
             roc = evaluate.load("roc_auc")
             pred_scores = softmax(preds, axis=1)[:, 1]

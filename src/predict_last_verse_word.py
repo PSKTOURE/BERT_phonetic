@@ -20,7 +20,10 @@ num_processes = os.cpu_count() - 1
 
 class CustomDataCollator:
     def __init__(
-        self, tokenizer: PreTrainedTokenizerBase, padding=True, max_length=128
+        self, 
+        tokenizer: PreTrainedTokenizerBase, 
+        padding: bool = True, 
+        max_length: int = 128
     ):
         self.tokenizer = tokenizer
         self.mask_token_id = tokenizer.mask_token_id
@@ -116,7 +119,10 @@ def predict_word(
         return np.mean(res)
 
     def one_iteration_training(num_iter: int):
-        model = AutoModelForMaskedLM.from_pretrained(model_path)
+        model = AutoModelForMaskedLM.from_pretrained(
+            model_path,
+            output_hidden_states=False,
+        )
         
         training_args = TrainingArguments(
             output_dir="/tmp/fine_tuned_bert",

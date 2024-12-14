@@ -66,7 +66,12 @@ def predict_rhythm(
     def _predict_rhythm(num_iter: int):
         print(f"Fine-tuning {model_name} for {num_iter + 1}/{num_iterations} iteration")
 
-        model = AutoModelForSequenceClassification.from_pretrained(model_path, num_labels=4, ignore_mismatched_sizes=True)
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_path, num_labels=4, 
+            ignore_mismatched_sizes=True,
+            output_hidden_states=False,
+        )
+        
         training_args = TrainingArguments(
             output_dir="/tmp/ryhthm_bert",
             num_train_epochs=num_epochs,
@@ -90,8 +95,8 @@ def predict_rhythm(
 
         trainer.train()
 
-        predictions = trainer.predict(dataset_tokenized["test"])
-        preds, labels = predictions.predictions, predictions.label_ids
+        outputs = trainer.predict(dataset_tokenized["test"])
+        preds, labels = outputs.predictions, outputs.label_ids
         preds = np.argmax(preds, axis=-1)
 
         acc_macro = MulticlassAccuracy(num_classes=4, average="macro")

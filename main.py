@@ -60,7 +60,6 @@ default_args = {
     "tm::percent": "0.1",
     # Fine-tuning default arguments
     "ft::model_path": DEFAULT_MODEL,
-    "ft::tokenizer_path": f"bert-base-uncased",
     "ft::all": "FALSE",
     "ft::num_iterations": "1",
     "ft::is_phonetic": "TRUE",
@@ -142,7 +141,6 @@ elif args.fine_tune:
         is_phonetic=config_args["ft::is_phonetic"],
         all=config_args["ft::all"],
         num_iterations=int(config_args["ft::num_iterations"]),
-        tokenizer_path=config_args["ft::tokenizer_path"],
     )
 
 elif args.train_tokenizer:
