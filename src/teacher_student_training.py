@@ -24,7 +24,7 @@ def teacher_student_training(
     batch_size: int = BATCH_SIZE,
     lr: float = 1e-4,
     max_length: int = MAX_LENGTH,
-    distillation_lambda: float = 0.1,
+    d_lambda: float = 0.1,
     fp16: bool = False,
     tokenizer_type: str = "WordPiece",
     log_dir: str = LOG_DIR,
@@ -59,6 +59,10 @@ def teacher_student_training(
 
     # Load models and move to device
     teacher = AutoModel.from_pretrained(teacher_model_name)
+    teacher.eval()
+    for param in teacher.parameters():
+        param.requires_grad = False
+    
     config = setup_bert_config(vocab_size=student_tokenizer.vocab_size)
     student = BertForMaskedLM(config=config)
     
@@ -66,11 +70,11 @@ def teacher_student_training(
     student.to(device)
 
     class TeacherStudentTrainer(Trainer):
-        def __init__(self, teacher=None, student=None, distillation_lambda: float = 0.1, *args, **kwargs):
+        def __init__(self, teacher=None, student=None, d_lambda: float = 0.1, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.teacher = teacher
             self.student = student
-            self.distillation_lambda = distillation_lambda
+            self.d_lambda = d_lambda
             self.mse = torch.nn.MSELoss()
 
         def compute_loss(self, model, inputs, return_outputs=False):
@@ -97,7 +101,7 @@ def teacher_student_training(
             mse_loss = self.mse(student_cls_embeddings, teacher_cls_embeddings)
 
             # Total loss
-            total_loss = mlm_loss + self.distillation_lambda * mse_loss
+            total_loss = (1 - self.d_lambda) * mlm_loss + self.d_lambda * mse_loss
             return (total_loss, student_outputs) if return_outputs else total_loss
 
     mlm_data_collator = DataCollatorForLanguageModeling(
@@ -153,7 +157,7 @@ def teacher_student_training(
     dataset_name = os.path.basename(dataset_path)
 
     hub_token = os.getenv("HF_TOKEN")
-    model_name = f"BERT_TS_{tokenizer_type}_{dataset_name}"
+    model_name = f"BERT_TS_{tokenizer_type}_{dataset_name}_{d_lambda}"
 
     training_args = TrainingArguments(
         output_dir=f"{model_dir}/{model_name}",
@@ -191,7 +195,7 @@ def teacher_student_training(
     trainer = TeacherStudentTrainer(
         teacher=teacher,
         student=student,
-        distillation_lambda=distillation_lambda,
+        d_lambda=d_lambda,
         model_init=lambda: student,
         args=training_args,
         data_collator=data_collator,
