@@ -7,7 +7,7 @@ tm::num_epochs==40
 tm::max_steps==400000
 tm::fp16==TRUE
 tm::batch_size==256
-tm::d_lambda==0.5
+tm::d_lambda==0.1
 tm::lr==0.0001
 tm::max_length==128
 tm::log_dir==logs
@@ -15,10 +15,9 @@ tm::model_dir==models
 tm::percent==0.2
 
 # Fine_tuning args:
-ft::model_path==psktoure/BERT_WordLevel_phonetic_bookcorpus_0.1
+ft::model_path==psktoure/BERT_TS_WordPiece_phonetic_wikitext_0.5
 ft::is_phonetic==TRUE
-ft::phoneme==FALSE
-ft::num_iterations==3
+ft::num_iterations==5
 ft::all==TRUE
 
 # Training tokenizer args:

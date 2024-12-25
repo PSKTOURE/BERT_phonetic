@@ -11,6 +11,7 @@ from transformers import (
     BertConfig,
     AutoModel,
 )
+from torch.utils.tensorboard import SummaryWriter
 from src.config import BATCH_SIZE, MAX_LENGTH, LOG_DIR, MODEL_DIR, DEFAULT_MODEL
 from src.utils import num_processes
 
@@ -76,6 +77,7 @@ def teacher_student_training(
             self.student = student
             self.d_lambda = d_lambda
             self.mse = torch.nn.MSELoss()
+            self.tb_writer = SummaryWriter(log_dir=self.args.logging_dir)
 
         def compute_loss(self, model, inputs, return_outputs=False):
             teacher_input_ids = inputs.pop("teacher_input_ids")
@@ -101,8 +103,20 @@ def teacher_student_training(
             mse_loss = self.mse(student_cls_embeddings, teacher_cls_embeddings)
 
             # Total loss
-            total_loss = (1 - self.d_lambda) * mlm_loss + self.d_lambda * mse_loss
+            scale_factor = 18
+            total_loss = (1 - self.d_lambda) * mlm_loss + scale_factor * self.d_lambda * mse_loss
+
+            # Log losses to TensorBoard
+            current_step = self.state.global_step
+            if current_step % 100 == 0:
+                self.tb_writer.add_scalar("Loss/MLM", mlm_loss.item(), current_step)
+                self.tb_writer.add_scalar("Loss/MSE", mse_loss.item(), current_step)
+
             return (total_loss, student_outputs) if return_outputs else total_loss
+        
+        def on_train_end(self, *args, **kwargs):
+            super().on_train_end(*args, **kwargs)
+            self.tb_writer.close() 
 
     mlm_data_collator = DataCollatorForLanguageModeling(
         tokenizer=student_tokenizer, mlm=True, mlm_probability=0.15
