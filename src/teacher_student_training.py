@@ -10,6 +10,7 @@ from transformers import (
     TrainingArguments,
     BertConfig,
     AutoModel,
+    EarlyStoppingCallback,
 )
 from torch.utils.tensorboard import SummaryWriter
 from src.config import BATCH_SIZE, MAX_LENGTH, LOG_DIR, MODEL_DIR, DEFAULT_MODEL
@@ -216,6 +217,7 @@ def teacher_student_training(
         tokenizer=student_tokenizer,
         train_dataset=tokenized_dataset["train"],
         eval_dataset=tokenized_dataset["validation"],
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
     )
 
     print("Training ...")

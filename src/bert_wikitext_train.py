@@ -4,6 +4,7 @@ from datasets import load_from_disk
 from transformers import (
     Trainer,
     TrainingArguments,
+    EarlyStoppingCallback,
 )
 
 from transformers import BertConfig, BertForMaskedLM, DataCollatorForLanguageModeling
@@ -133,6 +134,7 @@ def train(
         data_collator=data_collator_mlm,
         train_dataset=dataset_tokenized["train"],
         eval_dataset=dataset_tokenized["validation"],
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
     )
     print("Training ...")
     if os.listdir(f"{MODEL_DIR}/{model_name}"):

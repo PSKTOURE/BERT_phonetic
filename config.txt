@@ -1,13 +1,13 @@
 # Training model args:
-tm::dataset_path==DATASETS/phonetic_wikitext
-tm::tokenizer_path==tokenizers/tokenizer_phonetic_WordPiece
+tm::dataset_path==DATASETS/wikitext
+tm::tokenizer_path==tokenizers/tokenizer_WordPiece
 tm::tokenizer_type==WordPiece
-tm::is_phonetic==TRUE
+tm::is_phonetic==FALSE
 tm::num_epochs==40
-tm::max_steps==400000
+tm::max_steps==1000000
 tm::fp16==TRUE
 tm::batch_size==256
-tm::d_lambda==0.1
+tm::d_lambda==0.9
 tm::lr==0.0001
 tm::max_length==128
 tm::log_dir==logs
