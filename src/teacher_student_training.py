@@ -31,6 +31,7 @@ def teacher_student_training(
     tokenizer_type: str = "WordPiece",
     log_dir: str = LOG_DIR,
     model_dir: str = MODEL_DIR,
+    inverse: bool = False,
 ):
 
     # Define a BERT configuration
@@ -55,18 +56,23 @@ def teacher_student_training(
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Load Tokenizers
-    teacher_tokenizer = AutoTokenizer.from_pretrained(teacher_model_name)
-    student_tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-
     # Load models and move to device
     teacher = AutoModel.from_pretrained(teacher_model_name)
+    teacher_tokenizer = AutoTokenizer.from_pretrained(teacher_model_name)
     teacher.eval()
+
     for param in teacher.parameters():
         param.requires_grad = False
     
-    config = setup_bert_config(vocab_size=student_tokenizer.vocab_size)
-    student = BertForMaskedLM(config=config)
+    if not inverse:
+        # Student is the phonetic model
+        student_tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+        config = setup_bert_config(vocab_size=student_tokenizer.vocab_size)
+        student = BertForMaskedLM(config=config)
+    else:
+        # Student is the bert-base model
+        student = BertForMaskedLM.from_pretrained(DEFAULT_MODEL, output_hidden_states=True)
+        student_tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
     
     teacher.to(device)
     student.to(device)
@@ -124,15 +130,20 @@ def teacher_student_training(
     )
 
     def tokenize_dataset(dataset, teacher_tokenizer, student_tokenizer, max_length=128):
+        original_text = "original_text"
+        text = "text"
+        if inverse:
+            original_text, text = text, original_text
+
         def tokenize_function(examples):
             teacher_inputs = teacher_tokenizer(
-                examples["original_text"],
+                examples[original_text],
                 padding="max_length",
                 truncation=True,
                 max_length=max_length,
             )
             student_inputs = student_tokenizer(
-                examples["text"],
+                examples[text],
                 padding="max_length",
                 truncation=True,
                 max_length=max_length,
@@ -172,7 +183,10 @@ def teacher_student_training(
     dataset_name = os.path.basename(dataset_path)
 
     hub_token = os.getenv("HF_TOKEN")
-    model_name = f"BERT_TS_{tokenizer_type}_{dataset_name}_{d_lambda}"
+    if not inverse:
+        model_name = f"BERT_TS_{tokenizer_type}_{dataset_name}_{d_lambda}"
+    else:
+        model_name = f"BERT_BASE_TS_{dataset_name}_{d_lambda}"
 
     training_args = TrainingArguments(
         output_dir=f"{model_dir}/{model_name}",
@@ -225,6 +239,8 @@ def teacher_student_training(
         print("Resuming from checkpoint ...")
         trainer.train(resume_from_checkpoint=True)
     else:
+        if inverse:
+            print("################# TRAINING BERT BASE AS STUDENT #################")
         trainer.train()
     if hub_token is not None:
         trainer.push_to_hub("End of training")

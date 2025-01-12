@@ -8,6 +8,7 @@ from src.utils import (
     timeit,
 )
 from src.bert_wikitext_train import train
+from src.bertTrainV2 import train as trainV2
 from src.teacher_student_training import teacher_student_training
 from src.train_on_all_task import fine_tune_on_all_tasks
 from src.train_tokenizer import train_tokenizer
@@ -35,6 +36,8 @@ parser.add_argument(
     help="Convert downloaded datasets to phonetic",
 )
 parser.add_argument("--train", action="store_true", help="Launch training process")
+parser.add_argument("--trainV2", action="store_true", help="Launch training process")
+
 parser.add_argument(
     "--distillation_training", action="store_true", help="Launch distillation training process"
 )
@@ -45,9 +48,10 @@ args = parser.parse_args()
 # Load default config arguments from config.txt
 default_args = {
     # Training default arguments
-    "tm::dataset_path": f"{DATASETS_DIR}/phonetic_bookcorpus",
+    "tm::dataset_path": f"{DATASETS_DIR}/phonetic_wikitext",
     "tm::tokenizer_type": "BPE",
-    "tm::tokenizer_path": f"{TOKENIZERS_DIR}/tokenizer_phonetic_BPE",
+    "tm::tokenizer_path": f"{TOKENIZERS_DIR}/tokenizer_phonetic_WordPiece",
+    "tm::teacher_model_name": DEFAULT_MODEL,
     "tm::num_epochs": "40",
     "tm::max_steps": "-1",
     "tm::fp16": "TRUE",
@@ -55,6 +59,7 @@ default_args = {
     "tm::lr": "0.0001",
     "tm::max_length": "128",
     "tm::d_lambda": "0.1",
+    "tm::inverse": "FALSE",
     "tm::log_dir": "logs",
     "tm::model_dir": "models",
     "tm::percent": "0.1",
@@ -64,7 +69,7 @@ default_args = {
     "ft::num_iterations": "1",
     "ft::is_phonetic": "TRUE",
     # Tokenizer training default arguments
-    "tt::dataset_path": f"{DATASETS_DIR}/phonetic_bookcorpus",
+    "tt::dataset_path": f"{DATASETS_DIR}/phonetic_wikitext",
     "tt::tokenizer_type": "BPE",
     "tt::is_phonetic": "TRUE",
 }
@@ -85,6 +90,7 @@ except FileNotFoundError:
 config_args["ft::is_phonetic"] = config_args["ft::is_phonetic"].upper() == "TRUE"
 config_args["tt::is_phonetic"] = config_args["tt::is_phonetic"].upper() == "TRUE"
 config_args["tm::fp16"] = config_args["tm::fp16"].upper() == "TRUE"
+config_args["tm::inverse"] = config_args["tm::inverse"].upper() == "TRUE"
 config_args["ft::all"] = config_args["ft::all"].upper() == "TRUE"
 
 print("Config arguments:")
@@ -118,17 +124,34 @@ elif args.train:
         model_dir=config_args["tm::model_dir"],
     )
 
+elif args.trainV2:
+    # Train the model on both phonetic and normal datasets
+    timeit(trainV2)(
+        dataset_path=config_args["tm::dataset_path"],
+        phonetic_tokenizer_path=config_args["tm::tokenizer_path"],
+        num_epochs=int(config_args["tm::num_epochs"]),
+        max_steps=int(config_args["tm::max_steps"]),
+        batch_size=int(config_args["tm::batch_size"]),
+        lr=float(config_args["tm::lr"]),
+        max_length=int(config_args["tm::max_length"]),
+        fp16=config_args["tm::fp16"],
+        log_dir=config_args["tm::log_dir"],
+        model_dir=config_args["tm::model_dir"],
+    )
+
 elif args.distillation_training:
         # Launch distillation training process
         timeit(teacher_student_training)(
             dataset_path=config_args["tm::dataset_path"],
             tokenizer_path=config_args["tm::tokenizer_path"],
+            teacher_model_name=config_args["tm::teacher_model_name"],
             num_epochs=int(config_args["tm::num_epochs"]),
             max_steps=int(config_args["tm::max_steps"]),
             batch_size=int(config_args["tm::batch_size"]),
             lr=float(config_args["tm::lr"]),
             max_length=int(config_args["tm::max_length"]),
             d_lambda=float(config_args["tm::d_lambda"]),
+            inverse=config_args["tm::inverse"],
             fp16=config_args["tm::fp16"],
             tokenizer_type=config_args["tm::tokenizer_type"],
             log_dir=config_args["tm::log_dir"],
