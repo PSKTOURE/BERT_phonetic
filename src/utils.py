@@ -5,7 +5,7 @@ import multiprocess
 import epitran
 from functools import lru_cache
 from datasets import DatasetDict, load_dataset, concatenate_datasets, load_from_disk
-from src.dataset_cleaning import (
+from src.datasetCleaning import (
     remove_exact_duplicates,
     filter_by_language,
     clean_text,

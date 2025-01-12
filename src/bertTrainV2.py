@@ -1,12 +1,12 @@
 from transformers import (
     PreTrainedTokenizerBase,
-    DataCollatorForLanguageModeling,
     BertForMaskedLM,
     Trainer,
     TrainingArguments,
     BertConfig,
     AutoTokenizer,
 )
+import numpy as np
 from datasets import load_from_disk
 from typing import List, Dict, Tuple
 import torch
@@ -34,37 +34,55 @@ class CustomDataCollatorForLanguageModeling():
         normal_tokens: List[str],
         phonetic_tokens: List[str],
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # Initialize masks
-        normal_mask = torch.zeros(len(normal_tokens), dtype=torch.bool)
-        phonetic_mask = torch.zeros(len(phonetic_tokens), dtype=torch.bool)
-
+        """
+        Create masks following standard BERT masking strategy:
+        - Select 15% of tokens for potential masking
+        - Of those tokens:
+            - 80% are replaced with [MASK]
+            - 10% are replaced with random token
+            - 10% are left unchanged
+        Maintains alignment between normal and phonetic texts
+        """
+        # Initialize mask tensors (1 for MASK, 2 for random, 3 for unchanged)
+        normal_mask = torch.zeros(len(normal_tokens), dtype=torch.long)
+        phonetic_mask = torch.zeros(len(phonetic_tokens), dtype=torch.long)
+        
         # Track word positions (non-subword tokens)
-        normal_word_positions = [
-            i for i, token in enumerate(normal_tokens) if not token.startswith("##")
-        ]
-        phonetic_word_positions = [
-            i for i, token in enumerate(phonetic_tokens) if not token.startswith("##")
-        ]
-
-        # Create word-level masks
-        for i in range(min(len(normal_word_positions), len(phonetic_word_positions))):
-            if random.random() < self.mask_probability:
-                # Mask word in normal text
-                normal_pos = normal_word_positions[i]
-                normal_mask[normal_pos] = True
-                j = normal_pos + 1
-                while j < len(normal_tokens) and normal_tokens[j].startswith("##"):
-                    normal_mask[j] = True
-                    j += 1
-
-                # Mask corresponding word in phonetic text
-                phonetic_pos = phonetic_word_positions[i]
-                phonetic_mask[phonetic_pos] = True
-                j = phonetic_pos + 1
-                while j < len(phonetic_tokens) and phonetic_tokens[j].startswith("##"):
-                    phonetic_mask[j] = True
-                    j += 1
-
+        normal_word_positions = [i for i, token in enumerate(normal_tokens) 
+                            if not token.startswith('##')]
+        phonetic_word_positions = [i for i, token in enumerate(phonetic_tokens) 
+                                if not token.startswith('##')]
+        
+        # Calculate number of words to mask (15% of the shorter sequence)
+        num_words = min(len(normal_word_positions), len(phonetic_word_positions))
+        num_to_mask = max(1, int(num_words * 0.15))
+        
+        # Randomly select word positions to mask
+        mask_indices = random.sample(range(num_words), num_to_mask)
+        
+        # For each selected word
+        for word_idx in mask_indices:
+            # Determine masking strategy (80-10-10)
+            mask_type = np.random.choice([1, 2, 3], p=[0.8, 0.1, 0.1])
+            
+            # Mask normal text word
+            normal_pos = normal_word_positions[word_idx]
+            normal_mask[normal_pos] = mask_type
+            # Mask following subwords if any
+            j = normal_pos + 1
+            while j < len(normal_tokens) and normal_tokens[j].startswith('##'):
+                normal_mask[j] = mask_type
+                j += 1
+            
+            # Mask corresponding phonetic text word
+            phonetic_pos = phonetic_word_positions[word_idx]
+            phonetic_mask[phonetic_pos] = mask_type
+            # Mask following subwords if any
+            j = phonetic_pos + 1
+            while j < len(phonetic_tokens) and phonetic_tokens[j].startswith('##'):
+                phonetic_mask[j] = mask_type
+                j += 1
+        
         return normal_mask, phonetic_mask
 
     def __call__(self, examples: List[Dict[str, str]]) -> Dict[str, torch.Tensor]:
@@ -116,26 +134,36 @@ class CustomDataCollatorForLanguageModeling():
 
             # Create token type IDs
             # +1 for [SEP]
-            normal_type_ids = torch.zeros(len(normal_encoding["input_ids"][0][1:-1]) + 1)
-            # +1 for [SEP]
-            phonetic_type_ids = torch.ones(len(phonetic_encoding["input_ids"][0][1:-1]) + 1)
+            normal_type_ids = torch.zeros(len(normal_encoding["input_ids"][0][1:]))
+            phonetic_type_ids = torch.ones(len(phonetic_encoding["input_ids"][0][1:]))
             token_type_ids = torch.cat([torch.tensor([0]), normal_type_ids, phonetic_type_ids])
 
-            # Create labels (copy of input_ids)
+            # Create labels
             labels = final_input_ids.clone()
 
             # Apply masks
             combined_mask = torch.cat(
                 [
-                    torch.tensor([False]),  # For [CLS]
+                    torch.tensor([0]),  # For [CLS]
                     normal_mask,
-                    torch.tensor([False]),  # For [SEP]
+                    torch.tensor([0]),  # For [SEP]
                     phonetic_mask,
-                    torch.tensor([False]),  # For final [SEP]
+                    torch.tensor([0]),  # For final [SEP]
                 ]
             )
-    
-            final_input_ids[combined_mask] = self.normal_tokenizer.mask_token_id
+
+            # Get vocabulary size for random token selection
+            vocab_size = len(self.normal_tokenizer.vocab)
+            
+            # Apply different masking strategies
+            for i in range(len(final_input_ids)):
+                if combined_mask[i] == 1:  # 80% - Replace with [MASK]
+                    final_input_ids[i] = self.normal_tokenizer.mask_token_id
+                elif combined_mask[i] == 2:  # 10% - Replace with random token
+                    final_input_ids[i] = random.randint(0, vocab_size - 1)
+            
+            # Set labels
+            labels = torch.where(combined_mask > 0, labels, -100)
 
             # Pad if necessary
             if len(final_input_ids) < self.max_length:

@@ -4,7 +4,7 @@ from transformers import (
     AutoTokenizer,
     DataCollatorWithPadding,
 )
-from src.train_on_all_task import (
+from fineTuneOnGlue import (
     preprocess_dataset,
     compute_metrics,
 )

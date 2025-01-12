@@ -1,6 +1,6 @@
-from src.train_on_all_task import fine_tune_on_all_tasks
+from src.fineTuneOnGlue import fine_tune_on_all_tasks
 from src.rhythm import predict_rhythm
-from src.predict_last_verse_word import predict_word
+from src.predictLastWord import predict_word
 import time
 
 

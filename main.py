@@ -7,11 +7,11 @@ from src.utils import (
     download_glue_dataset,
     timeit,
 )
-from src.bert_wikitext_train import train
+from src.bertTrainV1 import train
 from src.bertTrainV2 import train as trainV2
-from src.teacher_student_training import teacher_student_training
-from src.train_on_all_task import fine_tune_on_all_tasks
-from src.train_tokenizer import train_tokenizer
+from src.teacherStudentTrain import teacher_student_training
+from src.fineTuneOnGlue import fine_tune_on_all_tasks
+from src.trainTokenizer import train_tokenizer
 
 # Initialize argparse for main commands
 parser = argparse.ArgumentParser()
