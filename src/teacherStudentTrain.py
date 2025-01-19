@@ -110,7 +110,7 @@ def teacher_student_training(
             mse_loss = self.mse(student_cls_embeddings, teacher_cls_embeddings)
 
             # Total loss
-            scale_factor = 18
+            scale_factor = 18 if inverse else 5
             total_loss = (1 - self.d_lambda) * mlm_loss + scale_factor * self.d_lambda * mse_loss
 
             # Log losses to TensorBoard
@@ -231,7 +231,7 @@ def teacher_student_training(
         tokenizer=student_tokenizer,
         train_dataset=tokenized_dataset["train"],
         eval_dataset=tokenized_dataset["validation"],
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+        #callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
     )
 
     print("Training ...")

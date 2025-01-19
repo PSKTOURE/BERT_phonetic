@@ -6,9 +6,9 @@ import time
 
 
 models = [
-    "psktoure/BERT_WordPiece_phonetic_wikitext",
+    "psktoure/BERT_BASE_TS_phonetic_wikitext_0.1",
 ]
-phonetic = [True]
+phonetic = [False]
 
 
 for model, is_phonetic in zip(models, phonetic):
@@ -19,7 +19,7 @@ for model, is_phonetic in zip(models, phonetic):
         all=True,
     )
 
-dataset_paths = ["/home/toure215/BERT_phonetic/DATASETS/verses/phonetic_verse_hf"]
+dataset_paths = ["/home/toure215/BERT_phonetic/DATASETS/verses/verse_hf"]
 
 for path, dataset_path in zip(models, dataset_paths):
     predict_rhythm(
@@ -32,7 +32,7 @@ for path, dataset_path in zip(models, dataset_paths):
         log_file="rhythm.tsv",
     )
 
-dataset_paths = ["/home/toure215/BERT_phonetic/DATASETS/verses/rhyming_verses_phonetic"]
+dataset_paths = ["/home/toure215/BERT_phonetic/DATASETS/verses/rhyming_verses"]
 for path, dataset_path in zip(models, dataset_paths):
     predict_word(
         dataset_path=dataset_path,
@@ -45,7 +45,7 @@ for path, dataset_path in zip(models, dataset_paths):
         log_file="predict_last_word.tsv",
     )
 
-dataset_paths = ["/home/toure215/BERT_phonetic/DATASETS/rap/phonetic_rap_ds_hf"]
+dataset_paths = ["/home/toure215/BERT_phonetic/DATASETS/rap/rap_ds_hf"]
 for path, dataset_path in zip(models, dataset_paths):
     predict_word(
         dataset_path=dataset_path,

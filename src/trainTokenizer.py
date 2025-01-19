@@ -33,7 +33,7 @@ def train_tokenizer(
         os.makedirs(TOKENIZERS_DIR)
 
     prefix = "phonetic_" if is_phonetic else ""
-    tokenizer_name = f"tokenizer_{prefix}{tokenizer_type}"
+    tokenizer_name = f"tokenizer_{prefix}{tokenizer_type}_IPA"
     if os.path.exists(f"{TOKENIZERS_DIR}/{tokenizer_name}"):
         print("Removing existing tokenizer directory ...")
         shutil.rmtree(f"{TOKENIZERS_DIR}/{tokenizer_name}")

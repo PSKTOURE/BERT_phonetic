@@ -165,7 +165,7 @@ def download_wikitext(is_phonetic=False) -> None:
         )
         print("Translating to phonetic...")
 
-        dataset_name = f"phonetic_wikitext"
+        dataset_name = f"phonetic_wikitext2"
 
     wiki_dir = f"{DATASETS_DIR}/{dataset_name}"
     dataset.save_to_disk(wiki_dir, num_proc=num_processes)
@@ -244,11 +244,11 @@ def cached_xsampa(word):
 
 
 def xsampa(sentences):
-    return [
-        " ".join(cached_xsampa(word) for word in re.findall(r"\w+|[^\s\w]+", sentence))
-        for sentence in sentences
-    ]
-
+    # return [
+    #     " ".join(cached_xsampa(word) for word in re.findall(r"\w+|[^\s\w]+", sentence))
+    #     for sentence in sentences
+    # ]
+    return [epi.transliterate(sentence) for sentence in sentences]
 
 def translate_to_phonetic(example):
     phonetic_sentences = xsampa(example["text"])

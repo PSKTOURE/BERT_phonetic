@@ -4,13 +4,13 @@ tm::tokenizer_path==tokenizers/tokenizer_phonetic_WordPiece
 tm::tokenizer_type==WordPiece
 tm::teacher_model_name==psktoure/BERT_WordPiece_phonetic_wikitext
 tm::is_phonetic==TRUE
-tm::num_epochs==40
+tm::num_epochs==10
 tm::max_steps==400000
 tm::fp16==TRUE
 tm::batch_size==128
-tm::d_lambda==0.1
+tm::d_lambda==0.9
 tm::inverse==TRUE
-tm::lr==0.0001
+tm::lr==0.0004
 tm::max_length==256
 tm::log_dir==logs
 tm::model_dir==models
@@ -23,6 +23,6 @@ ft::num_iterations==5
 ft::all==TRUE
 
 # Training tokenizer args:
-tt::dataset_path==DATASETS/phonetic_wikitext
-tt::tokenizer_type==BPE
+tt::dataset_path==DATASETS/phonetic_wikitext_IPA
+tt::tokenizer_type==WordPiece
 tt::is_phonetic==TRUE
