@@ -5,6 +5,7 @@ from transformers import (
     TrainingArguments,
     BertConfig,
     AutoTokenizer,
+    EarlyStoppingCallback,
 )
 import numpy as np
 from datasets import load_from_disk
@@ -59,8 +60,9 @@ class CustomDataCollatorForLanguageModeling:
             - phonetic_encoding: Token IDs for phonetic text
         """
         # Split texts into words
-        normal_words = re.findall(r"\w+", normal_text, re.UNICODE)
-        phonetic_words = phonetic_text.split()
+
+        normal_words = re.findall(r"\w+|[^\w\s]", normal_text, re.UNICODE)
+        phonetic_words = re.findall(r"\w+|[^\w\s]", phonetic_text, re.UNICODE)
 
         # Get token lengths for each word
         normal_token_lengths = [self._get_step_size(w, type=0) for w in normal_words]
@@ -192,7 +194,7 @@ class CustomDataCollatorForLanguageModeling:
                 if combined_mask[i] == 1:  # 80% - Replace with [MASK]
                     final_input_ids[i] = self.normal_tokenizer.mask_token_id
                 elif combined_mask[i] == 2:  # 10% - Replace with random token
-                    final_input_ids[i] = random.randint(0, vocab_size - 1)
+                    final_input_ids[i] = random.randint(5, vocab_size - 1)
 
             # Set labels
             labels = torch.where(combined_mask > 0, labels, -100)
@@ -247,6 +249,7 @@ def setup_bert_config(
 
 def train(
     dataset_path: str,
+    normal_tokenizer_path: str,
     phonetic_tokenizer_path: str,
     num_epochs: int = 40,
     max_steps: int = -1,
@@ -267,7 +270,7 @@ def train(
     except FileNotFoundError:
         raise ValueError(f"Dataset {dataset_path} not found")
 
-    normal_tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
+    normal_tokenizer = AutoTokenizer.from_pretrained(normal_tokenizer_path)
     phonetic_tokenizer = AutoTokenizer.from_pretrained(phonetic_tokenizer_path)
 
     data_collator = CustomDataCollatorForLanguageModeling(
@@ -282,7 +285,7 @@ def train(
     model.resize_token_embeddings(len(normal_tokenizer))
 
     hub_token = os.getenv("HF_TOKEN")
-    model_name = f"BERT_V2"
+    model_name = f"BERT_IPA"
     training_args = TrainingArguments(
         output_dir=f"{model_dir}/{model_name}",
         overwrite_output_dir=True,
@@ -323,6 +326,7 @@ def train(
         eval_dataset=dataset["validation"],
         tokenizer=normal_tokenizer,
         data_collator=data_collator,
+        #callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
     )
     print("Training ...")
     if os.listdir(f"{MODEL_DIR}/{model_name}"):

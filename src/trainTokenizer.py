@@ -12,12 +12,13 @@ from transformers import PreTrainedTokenizerFast
 from src.config import DATASETS_DIR, TOKENIZERS_DIR, BERT_DEFAULT_VOCAB_SIZE
 
 
-def get_training_corpus(dataset):
+def get_training_corpus(dataset, is_phonetic: bool):
     splits = list(dataset.keys())
     dataset = concatenate_datasets([dataset[split] for split in splits])
+    text = "text" if is_phonetic else "original_text"
     for i in range(0, len(dataset), 1000):
         samples = dataset[i : i + 1000]
-        yield samples["text"]
+        yield samples[text]
 
 
 def train_tokenizer(
@@ -65,7 +66,7 @@ def train_tokenizer(
         vocab_size=BERT_DEFAULT_VOCAB_SIZE,
         special_tokens=["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"],
     )
-    training_corpus = get_training_corpus(dataset)
+    training_corpus = get_training_corpus(dataset, is_phonetic)
     tokenizer.train_from_iterator(training_corpus, trainer)
     tokenizer = PreTrainedTokenizerFast(tokenizer_object=tokenizer)
     tokenizer.add_special_tokens(

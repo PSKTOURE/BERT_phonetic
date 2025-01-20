@@ -4,18 +4,21 @@ from src.predictLastWord import predict_word
 import time
 
 
-
 models = [
-    "psktoure/BERT_BASE_TS_phonetic_wikitext_0.1",
+    "psktoure/BERT_BASE_TS_phonetic_wikitext_0.01",
+    "psktoure/BERT_BASE_TS_phonetic_wikitext_0.3",
+    "psktoure/BERT_BASE_TS_phonetic_wikitext_0.5",
+    "psktoure/BERT_BASE_TS_phonetic_wikitext_0.7",
+    "psktoure/BERT_BASE_TS_phonetic_wikitext_0.9",
+    "psktoure/BERT_IPA",
 ]
-phonetic = [False]
 
 
-for model, is_phonetic in zip(models, phonetic):
+for model in models:
     fine_tune_on_all_tasks(
         model_path=model,
-        num_iterations=5,
-        is_phonetic=is_phonetic,
+        num_iterations=3,
+        is_phonetic=False,
         all=True,
     )
 
@@ -28,7 +31,7 @@ for path, dataset_path in zip(models, dataset_paths):
         batch_size=256,
         max_length=128,
         num_epochs=3,
-        num_iterations=5,
+        num_iterations=3,
         log_file="rhythm.tsv",
     )
 
@@ -39,7 +42,7 @@ for path, dataset_path in zip(models, dataset_paths):
         model_path=path,
         num_epochs=3,
         batch_size=256,
-        num_iterations=5,
+        num_iterations=3,
         max_length=128,
         k=5,
         log_file="predict_last_word.tsv",
@@ -52,7 +55,7 @@ for path, dataset_path in zip(models, dataset_paths):
         model_path=path,
         num_epochs=3,
         batch_size=256,
-        num_iterations=5,
+        num_iterations=3,
         max_length=128,
         k=5,
         log_file="rap_predict_last_word.tsv",

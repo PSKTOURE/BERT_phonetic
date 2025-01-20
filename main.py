@@ -50,7 +50,9 @@ default_args = {
     # Training default arguments
     "tm::dataset_path": f"{DATASETS_DIR}/phonetic_wikitext",
     "tm::tokenizer_type": "BPE",
-    "tm::tokenizer_path": f"{TOKENIZERS_DIR}/tokenizer_phonetic_WordPiece",
+    "tm::tokenizer_path": f"{TOKENIZERS_DIR}/XSAMPA/tokenizer_phonetic_WordPiece",
+    "tm::phonetic_tokenizer_path": f"{TOKENIZERS_DIR}/XSAMPA/tokenizer_phonetic_WordPiece",
+    "tm:normal_tokenizer_path": f"{TOKENIZERS_DIR}/XSAMAPA/tokenizer_WordPiece",
     "tm::teacher_model_name": DEFAULT_MODEL,
     "tm::num_epochs": "40",
     "tm::max_steps": "-1",
@@ -128,7 +130,8 @@ elif args.trainV2:
     # Train the model on both phonetic and normal datasets
     timeit(trainV2)(
         dataset_path=config_args["tm::dataset_path"],
-        phonetic_tokenizer_path=config_args["tm::tokenizer_path"],
+        normal_tokenizer_path=config_args["tm::normal_tokenizer_path"],
+        phonetic_tokenizer_path=config_args["tm::phonetic_tokenizer_path"],
         num_epochs=int(config_args["tm::num_epochs"]),
         max_steps=int(config_args["tm::max_steps"]),
         batch_size=int(config_args["tm::batch_size"]),
