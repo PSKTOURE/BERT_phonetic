@@ -18,7 +18,7 @@ def get_training_corpus(dataset, is_phonetic: bool):
     text = "text" if is_phonetic else "original_text"
     for i in range(0, len(dataset), 1000):
         samples = dataset[i : i + 1000]
-        yield samples[text]
+        yield samples["text"] + [" "] + samples["original_text"]
 
 
 def train_tokenizer(

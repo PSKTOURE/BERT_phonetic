@@ -1,24 +1,21 @@
 # Training model args:
-tm::dataset_path==DATASETS/phonetic_wikitext_IPA
-tm::tokenizer_path==tokenizers/IPA/tokenizer_WordPiece_IPA
+tm::dataset_path==DATASETS/phonetic_wikitext
+tm::tokenizer_path==tokenizers/XSAMPA/tokenizer_phonetic_WordPiece
 tm::tokenizer_type==WordPiece
 tm::teacher_model_name==psktoure/BERT_WordPiece_phonetic_wikitext
 tm::is_phonetic==TRUE
 tm::num_epochs==10
-tm::max_steps==400000
+tm::max_steps==-1
 tm::fp16==TRUE
-tm::batch_size==128
-tm::d_lambda==0.9
+tm::batch_size==256
+tm::d_lambda==0.1
 tm::inverse==TRUE
-tm::lr==0.0004
-tm::max_length==256
+tm::lr==0.00001
+tm::max_length==128
 tm::log_dir==logs
 tm::model_dir==models
 tm::percent==0.2
 
-# Toknizers for BERTV2
-tm::normal_tokenizer_path==tokenizers/IPA/tokenizer_WordPiece_IPA
-tm::phonetic_tokenizer_path==tokenizers/IPA/tokenizer_phonetic_WordPiece_IPA
 
 # Fine_tuning args:
 ft::model_path==psktoure/BERT_TS_WordPiece_phonetic_wikitext_0.5
@@ -28,5 +25,5 @@ ft::all==TRUE
 
 # Training tokenizer args:
 tt::dataset_path==DATASETS/phonetic_wikitext_IPA
-tt::tokenizer_type==BPE
-tt::is_phonetic==False
+tt::tokenizer_type==WordPiece
+tt::is_phonetic==TRUE

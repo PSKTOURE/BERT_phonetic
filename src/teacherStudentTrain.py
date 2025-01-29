@@ -64,6 +64,7 @@ def teacher_student_training(
     for param in teacher.parameters():
         param.requires_grad = False
     
+    # If inverse is False, the student model is the phonetic model; otherwise, it is the BERT base model
     if not inverse:
         # Student is the phonetic model
         student_tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
@@ -109,13 +110,15 @@ def teacher_student_training(
             mlm_loss = student_outputs.loss
             mse_loss = self.mse(student_cls_embeddings, teacher_cls_embeddings)
 
-            # Total loss
-            scale_factor = 18 if inverse else 5
-            total_loss = (1 - self.d_lambda) * mlm_loss + scale_factor * self.d_lambda * mse_loss
+            mse_loss_value = mse_loss.item()
+            mlm_loss_value = mlm_loss.item()
+
+            scale_factor = mlm_loss_value / mse_loss_value if mse_loss_value != 0 else 0
+            total_loss = (1 - self.d_lambda) * mlm_loss + self.d_lambda * scale_factor * mse_loss
 
             # Log losses to TensorBoard
             current_step = self.state.global_step
-            if current_step % 100 == 0:
+            if current_step % 500 == 0:
                 self.tb_writer.add_scalar("Loss/MLM", mlm_loss.item(), current_step)
                 self.tb_writer.add_scalar("Loss/MSE", mse_loss.item(), current_step)
 
@@ -129,21 +132,21 @@ def teacher_student_training(
         tokenizer=student_tokenizer, mlm=True, mlm_probability=0.15
     )
 
-    def tokenize_dataset(dataset, teacher_tokenizer, student_tokenizer, max_length=128):
-        original_text = "original_text"
-        text = "text"
+    def tokenize_dataset(dataset, teacher_tokenizer, student_tokenizer, max_length=max_length):
+        teacher_text = "original_text"
+        student_text = "text"
         if inverse:
-            original_text, text = text, original_text
+            teacher_text, student_text = student_text, teacher_text
 
         def tokenize_function(examples):
             teacher_inputs = teacher_tokenizer(
-                examples[original_text],
+                examples[teacher_text],
                 padding="max_length",
                 truncation=True,
                 max_length=max_length,
             )
             student_inputs = student_tokenizer(
-                examples[text],
+                examples[student_text],
                 padding="max_length",
                 truncation=True,
                 max_length=max_length,
@@ -210,7 +213,7 @@ def teacher_student_training(
         resume_from_checkpoint="latest",
         dataloader_num_workers=num_processes,
         logging_dir=f"{log_dir}/tensorboard_{model_name}",
-        logging_steps=100,
+        logging_steps=500,
         report_to="tensorboard",
         seed=42,
         fp16=fp16,

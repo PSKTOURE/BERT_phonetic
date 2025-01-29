@@ -150,7 +150,7 @@ def download_wikitext(is_phonetic=False) -> None:
         dataset = load_from_disk(f"{DATASETS_DIR}/{dataset_name}")
 
     dataset = (
-        dataset.map(lambda x: chunked_text(x, chunk_size=100), num_proc=num_processes, batched=True)
+        dataset.map(lambda x: chunked_text(x, chunk_size=50), num_proc=num_processes, batched=True)
         .map(clean_text, num_proc=num_processes, batched=True)
         .map(remove_exact_duplicates, num_proc=num_processes, batched=True)
         .map(filter_by_language, num_proc=num_processes, batched=True)

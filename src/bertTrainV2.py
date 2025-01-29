@@ -22,17 +22,14 @@ from collections import defaultdict
 class CustomDataCollatorForLanguageModeling:
     def __init__(
         self,
-        normal_tokenizer: PreTrainedTokenizerBase,
-        phonetic_tokenizer: PreTrainedTokenizerBase,
+        tokenizer: PreTrainedTokenizerBase,
         max_length: int = 128,
         mask_probability: float = 0.15,
     ):
-        self.normal_tokenizer = normal_tokenizer
-        self.phonetic_tokenizer = phonetic_tokenizer
+        self.tokenizer = tokenizer
         self.max_length = max_length
         self.mask_probability = mask_probability
-        self.normal_cache = defaultdict(int)
-        self.phonetic_cache = defaultdict(int)
+        self.cache = defaultdict(int)
 
     def _create_aligned_masks(
         self,
@@ -65,15 +62,15 @@ class CustomDataCollatorForLanguageModeling:
         phonetic_words = re.findall(r"\w+|[^\w\s]", phonetic_text, re.UNICODE)
 
         # Get token lengths for each word
-        normal_token_lengths = [self._get_step_size(w, type=0) for w in normal_words]
-        phonetic_token_lengths = [self._get_step_size(w, type=1) for w in phonetic_words]
+        normal_token_lengths = [self._get_step_size(w) for w in normal_words]
+        phonetic_token_lengths = [self._get_step_size(w) for w in phonetic_words]
 
         # Create cumulative sums for position mapping
         normal_cumsum = np.cumsum([0] + normal_token_lengths[:-1])
         phonetic_cumsum = np.cumsum([0] + phonetic_token_lengths[:-1])
 
         # Tokenize both texts
-        normal_encoding = self.normal_tokenizer(
+        normal_encoding = self.tokenizer(
             normal_text,
             truncation=True,
             add_special_tokens=False,
@@ -81,7 +78,7 @@ class CustomDataCollatorForLanguageModeling:
             return_tensors="pt",
         )["input_ids"]
 
-        phonetic_encoding = self.phonetic_tokenizer(
+        phonetic_encoding = self.tokenizer(
             phonetic_text,
             truncation=True,
             add_special_tokens=False,
@@ -102,9 +99,7 @@ class CustomDataCollatorForLanguageModeling:
 
         # Pre-calculate mask types for efficiency
         # 1: MASK, 2: random, 3: unchanged
-        mask_types = np.random.choice(
-            [1, 2, 3], size=len(mask_indices), p=[0.8, 0.1, 0.1]  
-        )
+        mask_types = np.random.choice([1, 2, 3], size=len(mask_indices), p=[0.8, 0.1, 0.1])
 
         # Apply masks
         for word_idx, mask_type in zip(mask_indices, mask_types):
@@ -120,16 +115,13 @@ class CustomDataCollatorForLanguageModeling:
 
         return normal_mask, phonetic_mask, normal_encoding, phonetic_encoding
 
-    def _get_step_size(self, word: str, type: int) -> int:
+    def _get_step_size(self, word: str) -> int:
         """return the number of tokens in a word"""
-        cache = self.normal_cache if type == 0 else self.phonetic_cache
-        tokenizer = self.normal_tokenizer if type == 0 else self.phonetic_tokenizer
-        if word in cache:
-            return cache[word]
-        tokens = tokenizer(word, add_special_tokens=False)['input_ids']
-        cache[word] = len(tokens)
-        return cache[word]
-        
+        if word in self.cache:
+            return self.cache[word]
+        tokens = self.tokenizer(word, add_special_tokens=False)["input_ids"]
+        self.cache[word] = len(tokens)
+        return self.cache[word]
 
     def __call__(self, examples: List[Dict[str, str]]) -> Dict[str, torch.Tensor]:
         # Tokenize and process examples
@@ -147,11 +139,11 @@ class CustomDataCollatorForLanguageModeling:
             # Combine normal and phonetic text
             final_input_ids = torch.cat(
                 [
-                    torch.tensor([self.normal_tokenizer.cls_token_id]),  # [CLS]
+                    torch.tensor([self.tokenizer.cls_token_id]),  # [CLS]
                     normal_encoding[0],
-                    torch.tensor([self.normal_tokenizer.sep_token_id]),  # [SEP]
+                    torch.tensor([self.tokenizer.sep_token_id]),  # [SEP]
                     phonetic_encoding[0],
-                    torch.tensor([self.normal_tokenizer.sep_token_id]),  # Final [SEP]
+                    torch.tensor([self.tokenizer.sep_token_id]),  # Final [SEP]
                 ],
             )
 
@@ -186,15 +178,14 @@ class CustomDataCollatorForLanguageModeling:
                 ]
             )
 
-            # Get vocabulary size for random token selection
-            vocab_size = len(self.normal_tokenizer.vocab)
-
             # Apply different masking strategies
+            mask_token_id = self.tokenizer.mask_token_id
             for i in range(len(final_input_ids)):
-                if combined_mask[i] == 1:  # 80% - Replace with [MASK]
-                    final_input_ids[i] = self.normal_tokenizer.mask_token_id
-                elif combined_mask[i] == 2:  # 10% - Replace with random token
-                    final_input_ids[i] = random.randint(5, vocab_size - 1)
+                mask_type = combined_mask[i]
+                if mask_type == 1:  # 80% - Replace with [MASK]
+                    final_input_ids[i] = mask_token_id
+                elif mask_type == 2:  # 10% - Replace with random token
+                    final_input_ids[i] = np.random.randint(5, self.tokenizer.vocab_size)
 
             # Set labels
             labels = torch.where(combined_mask > 0, labels, -100)
@@ -208,7 +199,7 @@ class CustomDataCollatorForLanguageModeling:
                 final_input_ids = torch.cat(
                     [
                         final_input_ids,
-                        torch.tensor([self.normal_tokenizer.pad_token_id] * padding_length),
+                        torch.tensor([self.tokenizer.pad_token_id] * padding_length),
                     ]
                 )
 
@@ -249,8 +240,7 @@ def setup_bert_config(
 
 def train(
     dataset_path: str,
-    normal_tokenizer_path: str,
-    phonetic_tokenizer_path: str,
+    tokenizer_path: str,
     num_epochs: int = 40,
     max_steps: int = -1,
     batch_size: int = BATCH_SIZE,
@@ -270,19 +260,17 @@ def train(
     except FileNotFoundError:
         raise ValueError(f"Dataset {dataset_path} not found")
 
-    normal_tokenizer = AutoTokenizer.from_pretrained(normal_tokenizer_path)
-    phonetic_tokenizer = AutoTokenizer.from_pretrained(phonetic_tokenizer_path)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
     data_collator = CustomDataCollatorForLanguageModeling(
-        normal_tokenizer=normal_tokenizer,
-        phonetic_tokenizer=phonetic_tokenizer,
+        tokenizer=tokenizer,
         max_length=max_length,
         mask_probability=mask_probability,
     )
 
-    config = setup_bert_config(vocab_size=normal_tokenizer.vocab_size)
+    config = setup_bert_config(vocab_size=tokenizer.vocab_size)
     model = BertForMaskedLM(config)
-    model.resize_token_embeddings(len(normal_tokenizer))
+    model.resize_token_embeddings(len(tokenizer))
 
     hub_token = os.getenv("HF_TOKEN")
     model_name = f"BERT_IPA"
@@ -324,9 +312,9 @@ def train(
         args=training_args,
         train_dataset=dataset["train"],
         eval_dataset=dataset["validation"],
-        tokenizer=normal_tokenizer,
+        tokenizer=tokenizer,
         data_collator=data_collator,
-        #callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+        # callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
     )
     print("Training ...")
     if os.listdir(f"{MODEL_DIR}/{model_name}"):
