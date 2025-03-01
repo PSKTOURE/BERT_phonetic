@@ -95,8 +95,21 @@ def predict_rhythm(
 
         trainer.train()
 
-        outputs = trainer.predict(dataset_tokenized["test"])
-        preds, labels = outputs.predictions, outputs.label_ids
+        def get_predictions_and_labels(dataset, batch_size):
+            predictions = []
+            labels = []
+            for i in range(0, len(dataset), batch_size):
+                batch = dataset.select(range(i, min(i + batch_size, len(dataset))))
+                outputs = trainer.predict(batch)
+                preds = outputs.predictions
+                if isinstance(preds, tuple):
+                    preds = preds[0]
+                predictions.append(preds)
+                labels.append(outputs.label_ids)
+            return np.concatenate(predictions, axis=0), np.concatenate(labels, axis=0)
+
+        outputs = get_predictions_and_labels(dataset_tokenized["test"], batch_size)
+        preds, labels = outputs
         preds = np.argmax(preds, axis=-1)
 
         acc_macro = MulticlassAccuracy(num_classes=4, average="macro")

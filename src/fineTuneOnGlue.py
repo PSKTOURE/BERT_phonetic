@@ -117,7 +117,7 @@ def setup_trainer(model, dataset, tokenizer, data_collator, model_name, task_nam
         overwrite_output_dir=True,
         eval_strategy="no",
         per_device_train_batch_size=BATCH_SIZE,
-        per_device_eval_batch_size=32,
+        per_device_eval_batch_size=BATCH_SIZE,
         save_strategy="no",
         dataloader_num_workers=num_processes,
         learning_rate=5e-5,
@@ -147,31 +147,27 @@ def setup_trainer(model, dataset, tokenizer, data_collator, model_name, task_nam
     return trainer
 
 
-def compute_metrics(trainer, dataset, task_name):
-    if task_name == "mnli":
-        # Compute metrics for both validation sets in MNLI
-        matched_predictions = trainer.predict(dataset["validation_matched"])
-        mismatched_predictions = trainer.predict(dataset["validation_mismatched"])
+def compute_metrics(trainer, dataset, task_name, batch_size=256):
+    def get_predictions_and_labels(trainer, dataset, batch_size):
+        predictions = []
+        labels = []
+        for i in range(0, len(dataset), batch_size):
+            batch = dataset.select(range(i, min(i + batch_size, len(dataset))))
+            outputs = trainer.predict(batch)
+            preds = outputs.predictions
+            if isinstance(preds, tuple):
+                preds = preds[0]
+            predictions.append(preds)
+            labels.append(outputs.label_ids)
+        return np.concatenate(predictions, axis=0), np.concatenate(labels, axis=0)
 
-        matched_preds, matched_labels = (
-            matched_predictions.predictions,
-            matched_predictions.label_ids,
-        )
-        mismatched_preds, mismatched_labels = (
-            mismatched_predictions.predictions,
-            mismatched_predictions.label_ids,
-        )
+    if task_name == "mnli":
+        matched_preds, matched_labels = get_predictions_and_labels(trainer, dataset["validation_matched"], batch_size)
+        mismatched_preds, mismatched_labels = get_predictions_and_labels(trainer, dataset["validation_mismatched"], batch_size)
 
         metric = evaluate.load(task_to_metric[task_name][0])
-        preds = np.argmax(matched_preds, axis=1)
-        matched_result = metric.compute(
-            predictions=preds, references=matched_labels
-        )
-
-        preds = np.argmax(mismatched_preds, axis=1)
-        mismatched_result = metric.compute(
-            predictions=preds, references=mismatched_labels
-        )
+        matched_result = metric.compute(predictions=np.argmax(matched_preds, axis=1), references=matched_labels)
+        mismatched_result = metric.compute(predictions=np.argmax(mismatched_preds, axis=1), references=mismatched_labels)
 
         return {
             f"{task_name}_matched": matched_result,
@@ -179,17 +175,13 @@ def compute_metrics(trainer, dataset, task_name):
         }
 
     # Regular compute metrics for other tasks
-    outputs = trainer.predict(dataset["validation"])
-    preds = outputs.predictions
-    labels = outputs.label_ids
+    preds, labels = get_predictions_and_labels(trainer, dataset["validation"], batch_size)
 
     metric = evaluate.load(task_to_metric[task_name][0])
     if task_name == "stsb":
         result = metric.compute(predictions=preds, references=labels)
     else:
-        result = metric.compute(
-            predictions=np.argmax(preds, axis=1), references=labels
-        )
+        result = metric.compute(predictions=np.argmax(preds, axis=1), references=labels)
 
     return {task_name: result}
 
